@@ -1,5 +1,5 @@
-const CACHE_NAME = 'tire-pressure-v2';
-const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
+const CACHE_NAME = 'tire-pressure-v5';
+const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
