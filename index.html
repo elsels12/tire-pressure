@@ -137,9 +137,21 @@
     display:block;font-size:10px;font-weight:700;color:#94a3b8;
   }
   .corner .value-select{
-    width:100%;background:transparent;border:none;color:#ffffff;
-    font-family:'JetBrains Mono',monospace;font-size:30px;font-weight:800;text-align:center;
-    padding:2px 0 0;outline:none;cursor:pointer;
+    width:100%;
+    background:transparent !important;
+    border:none !important;
+    color:#ffffff !important;
+    font-family:'JetBrains Mono',monospace;
+    font-size:32px;
+    font-weight:800;
+    text-align:center !important;
+    text-align-last:center !important;
+    padding:2px 0 0;
+    outline:none;
+    cursor:pointer;
+    -webkit-appearance:none !important;
+    -moz-appearance:none !important;
+    appearance:none !important;
   }
   .corner .value-select option{
     background:#20252b;color:#ffffff;
@@ -355,8 +367,17 @@
   }
   .edit-btn:active{background:rgba(255,182,39,0.25);}
   .del-btn{
-    background:none;border:none;color:var(--paper-dim);font-family:'JetBrains Mono',monospace;
-    font-size:12px;letter-spacing:.05em;cursor:pointer;padding:4px 8px;
+    background:transparent;
+    border:1px solid rgba(255,90,46,0.35);
+    color:var(--danger) !important;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:.05em;
+    cursor:pointer;
+    padding:4px 10px;
+    border-radius:6px;
+    transition:all .15s ease;
   }
   .del-btn:active{color:var(--danger);}
 
@@ -545,7 +566,7 @@
   <div id="filterSummary" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--paper-dim);margin-bottom:6px;"></div>
   <div id="filterPanelBody" style="display:none;">
   <div class="grid2">
-    <div class="field">
+    <div class="field field-dark">
       <label>場所</label>
       <select id="filterTrack" onchange="applyFilters()">
         <option value="">すべて</option>
@@ -608,14 +629,30 @@
         <input type="text" id="filterLapMinHund" class="lap-seg lap-seg-3" maxlength="3" inputmode="numeric" pattern="[0-9]*" placeholder="000">
       </div>
     </div>
-    <div class="field wide">
-      <label>タイヤサイズ（幅/扁平R インチ）</label>
+    <div class="field wide field-dark">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:4px;">
+        <label style="margin-bottom:0;">フロント タイヤサイズ</label>
+        <select id="filterPresetSizeFront" class="size-preset-select" onchange="applyFilterSizePreset('Front', this.value); this.value='';" style="display:none;"></select>
+      </div>
       <div class="laptime-boxes">
-        <select id="filterSizeWidth" class="size-seg" onchange="applyFilters()"></select>
+        <select id="filterSizeFrontWidth" class="size-seg" onchange="applyFilters()"></select>
         <span class="lap-sep">/</span>
-        <select id="filterSizeAspect" class="size-seg" onchange="applyFilters()"></select>
+        <select id="filterSizeFrontAspect" class="size-seg" onchange="applyFilters()"></select>
         <span class="lap-sep">R</span>
-        <select id="filterSizeDiam" class="size-seg" onchange="applyFilters()"></select>
+        <select id="filterSizeFrontDiam" class="size-seg" onchange="applyFilters()"></select>
+      </div>
+    </div>
+    <div class="field wide field-dark">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:4px;">
+        <label style="margin-bottom:0;">リア タイヤサイズ</label>
+        <select id="filterPresetSizeRear" class="size-preset-select" onchange="applyFilterSizePreset('Rear', this.value); this.value='';" style="display:none;"></select>
+      </div>
+      <div class="laptime-boxes">
+        <select id="filterSizeRearWidth" class="size-seg" onchange="applyFilters()"></select>
+        <span class="lap-sep">/</span>
+        <select id="filterSizeRearAspect" class="size-seg" onchange="applyFilters()"></select>
+        <span class="lap-sep">R</span>
+        <select id="filterSizeRearDiam" class="size-seg" onchange="applyFilters()"></select>
       </div>
     </div>
     <div class="field wide">
@@ -934,9 +971,11 @@ function setupFilterFields(){
   tempMaxSel.addEventListener('change', applyFilters);
   document.getElementById('filterTempMax').addEventListener('focus', function(){ this.value = ''; });
 
-  buildFilterRangeOptions(document.getElementById('filterSizeWidth'), 125, 405, 10, '');
-  buildFilterRangeOptions(document.getElementById('filterSizeAspect'), 20, 85, 5, '');
-  buildFilterRangeOptions(document.getElementById('filterSizeDiam'), 10, 26, 1, '');
+  ['Front', 'Rear'].forEach(prefix => {
+    buildFilterRangeOptions(document.getElementById(`filterSize${prefix}Width`), 125, 405, 10, '');
+    buildFilterRangeOptions(document.getElementById(`filterSize${prefix}Aspect`), 20, 85, 5, '');
+    buildFilterRangeOptions(document.getElementById(`filterSize${prefix}Diam`), 10, 26, 1, '');
+  });
 }
 setupFilterFields();
 
@@ -1237,15 +1276,36 @@ function updateTrackFilterOptions(){
 function renderSizePresets(){
   ['Front', 'Rear'].forEach(prefix => {
     const sel = document.getElementById(`presetSize${prefix}`);
-    if(!sel) return;
-    if(sizeHistory.length === 0){
-      sel.style.display = 'none';
-      return;
+    if(sel){
+      if(sizeHistory.length === 0){
+        sel.style.display = 'none';
+      } else {
+        sel.style.display = 'inline-block';
+        sel.innerHTML = '<option value="">履歴サイズ</option>' + 
+          sizeHistory.map(s => `<option value="${s}">${s}</option>`).join('');
+      }
     }
-    sel.style.display = 'inline-block';
-    sel.innerHTML = '<option value="">履歴サイズ</option>' + 
-      sizeHistory.map(s => `<option value="${s}">${s}</option>`).join('');
+    const fSel = document.getElementById(`filterPresetSize${prefix}`);
+    if(fSel){
+      if(sizeHistory.length === 0){
+        fSel.style.display = 'none';
+      } else {
+        fSel.style.display = 'inline-block';
+        fSel.innerHTML = '<option value="">履歴サイズ</option>' + 
+          sizeHistory.map(s => `<option value="${s}">${s}</option>`).join('');
+      }
+    }
   });
+}
+
+function applyFilterSizePreset(prefix, val){
+  if(!val) return;
+  const p = parseSizeString(val);
+  if(!p) return;
+  document.getElementById(`filterSize${prefix}Width`).value = p.width;
+  document.getElementById(`filterSize${prefix}Aspect`).value = p.aspect;
+  document.getElementById(`filterSize${prefix}Diam`).value = p.diam;
+  applyFilters();
 }
 
 function applySizePreset(prefix, val){
@@ -1648,9 +1708,11 @@ function resetFilters(){
   document.getElementById('filterTempMax').value = '';
   document.getElementById('filterTempMax-select').value = '20';
   document.getElementById('filterFeel').value = '';
-  document.getElementById('filterSizeWidth').value = '';
-  document.getElementById('filterSizeAspect').value = '';
-  document.getElementById('filterSizeDiam').value = '';
+  ['Front', 'Rear'].forEach(prefix => {
+    document.getElementById(`filterSize${prefix}Width`).value = '';
+    document.getElementById(`filterSize${prefix}Aspect`).value = '';
+    document.getElementById(`filterSize${prefix}Diam`).value = '';
+  });
   ['filterLapMinMin','filterLapMinSec','filterLapMinHund','filterLapMaxMin','filterLapMaxSec','filterLapMaxHund'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('filterNotes').value = '';
   applyFilters();
@@ -1692,9 +1754,12 @@ function applyFilters(){
   const tempMinV = getCornerValue('filterTempMin');
   const tempMaxV = getCornerValue('filterTempMax');
   const feel = document.getElementById('filterFeel').value;
-  const sizeWidth = document.getElementById('filterSizeWidth').value;
-  const sizeAspect = document.getElementById('filterSizeAspect').value;
-  const sizeDiam = document.getElementById('filterSizeDiam').value;
+  const fWidth = document.getElementById('filterSizeFrontWidth').value;
+  const fAspect = document.getElementById('filterSizeFrontAspect').value;
+  const fDiam = document.getElementById('filterSizeFrontDiam').value;
+  const rWidth = document.getElementById('filterSizeRearWidth').value;
+  const rAspect = document.getElementById('filterSizeRearAspect').value;
+  const rDiam = document.getElementById('filterSizeRearDiam').value;
   const lapMinRaw = buildTimeFromBoxes('filterLapMinMin', 'filterLapMinSec', 'filterLapMinHund');
   const lapMaxRaw = buildTimeFromBoxes('filterLapMaxMin', 'filterLapMaxSec', 'filterLapMaxHund');
   const lapMinVal = parseLapTime(lapMinRaw);
@@ -1708,12 +1773,19 @@ function applyFilters(){
     if(feel && String(e.feel) !== feel) return false;
     if(!isNaN(tempMinV) && (e.ambientTemp === null || e.ambientTemp === undefined || parseFloat(e.ambientTemp) < tempMinV)) return false;
     if(!isNaN(tempMaxV) && (e.ambientTemp === null || e.ambientTemp === undefined || parseFloat(e.ambientTemp) > tempMaxV)) return false;
-    if(sizeWidth || sizeAspect || sizeDiam){
+    if(fWidth || fAspect || fDiam){
       const fSize = parseSizeString(e.sizeFront);
+      if(!fSize) return false;
+      if(fWidth && fSize.width !== fWidth) return false;
+      if(fAspect && fSize.aspect !== fAspect) return false;
+      if(fDiam && fSize.diam !== fDiam) return false;
+    }
+    if(rWidth || rAspect || rDiam){
       const rSize = parseSizeString(e.sizeRear);
-      if(sizeWidth && !((fSize && fSize.width === sizeWidth) || (rSize && rSize.width === sizeWidth))) return false;
-      if(sizeAspect && !((fSize && fSize.aspect === sizeAspect) || (rSize && rSize.aspect === sizeAspect))) return false;
-      if(sizeDiam && !((fSize && fSize.diam === sizeDiam) || (rSize && rSize.diam === sizeDiam))) return false;
+      if(!rSize) return false;
+      if(rWidth && rSize.width !== rWidth) return false;
+      if(rAspect && rSize.aspect !== rAspect) return false;
+      if(rDiam && rSize.diam !== rDiam) return false;
     }
     if(lapMinVal !== null){
       const entryLap = parseLapTime(e.lapTime);
@@ -1727,7 +1799,7 @@ function applyFilters(){
     return true;
   });
 
-  const activeFilters = track || condition || tireBrand || feel || !isNaN(tempMinV) || !isNaN(tempMaxV) || sizeWidth || sizeAspect || sizeDiam || lapMinRaw !== null || lapMaxRaw !== null || notesQuery !== '';
+  const activeFilters = track || condition || tireBrand || feel || !isNaN(tempMinV) || !isNaN(tempMaxV) || fWidth || fAspect || fDiam || rWidth || rAspect || rDiam || lapMinRaw !== null || lapMaxRaw !== null || notesQuery !== '';
   const summary = document.getElementById('filterSummary');
   summary.textContent = activeFilters ? `${filtered.length} / ${carEntries.length} 件表示中` : '';
 
