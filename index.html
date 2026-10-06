@@ -366,6 +366,44 @@
     letter-spacing:.05em;cursor:pointer;padding:4px 10px;border-radius:6px;
   }
   .edit-btn:active{background:rgba(255,182,39,0.25);}
+    .reset-filter-btn{
+    margin-top:12px;
+    width:100%;
+    padding:14px 0;
+    border-radius:8px;
+    border:1px solid var(--line-light);
+    background:rgba(255,255,255,0.04);
+    color:var(--paper);
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    font-weight:700;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  .reset-filter-btn:active{
+    background:rgba(255,255,255,0.1);
+    transform:scale(0.99);
+  }
+  .bulk-del-btn{
+    margin-top:8px;
+    width:100%;
+    padding:12px 0;
+    border-radius:8px;
+    border:1px solid rgba(255,90,46,0.5);
+    background:transparent;
+    color:var(--danger);
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    font-weight:700;
+    letter-spacing:.05em;
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  .bulk-del-btn:active{
+    background:rgba(255,90,46,0.15);
+  }
   .del-btn{
     background:transparent;
     border:1px solid rgba(255,90,46,0.35);
@@ -592,13 +630,13 @@
       <select class="temp-select" id="filterTempMin-select" onchange="applyFilters()"></select>
       <input type="number" step="0.5" class="temp-input" id="filterTempMin" oninput="applyFilters()" placeholder="手入力">
     </div>
-    <div class="field">
+    <div class="field field-dark">
       <label>タイヤ銘柄</label>
       <select id="filterTireBrand" onchange="applyFilters()">
         <option value="">すべて</option>
       </select>
     </div>
-    <div class="field">
+    <div class="field field-dark">
       <label>体感</label>
       <select id="filterFeel" onchange="applyFilters()">
         <option value="">すべて</option>
@@ -655,13 +693,13 @@
         <select id="filterSizeRearDiam" class="size-seg" onchange="applyFilters()"></select>
       </div>
     </div>
-    <div class="field wide">
+    <div class="field wide field-dark">
       <label>メモ検索</label>
       <input type="text" id="filterNotes" oninput="applyFilters()" placeholder="キーワード">
     </div>
   </div>
-  <button class="del-btn" style="margin-top:8px;width:100%;text-align:center;border:1px solid var(--line);border-radius:8px;padding:8px 0;" onclick="resetFilters()">絞り込み解除 / RESET</button>
-  <button class="del-btn" style="margin-top:8px;width:100%;text-align:center;border:1px solid var(--danger);color:var(--danger);border-radius:8px;padding:8px 0;" onclick="bulkDeleteFiltered()">絞り込み結果をまとめて削除</button>
+  <button type="button" class="reset-filter-btn" onclick="resetFilters()">絞り込み解除 / RESET</button>
+  <button type="button" class="bulk-del-btn" onclick="bulkDeleteFiltered()">絞り込み結果をまとめて削除</button>
   </div>
 
   <div class="section-title">履歴 / SESSION LOG</div>
