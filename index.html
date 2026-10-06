@@ -369,21 +369,21 @@
     .reset-filter-btn{
     margin-top:12px;
     width:100%;
-    padding:14px 0;
+    padding:17px 0;
     border-radius:8px;
-    border:1px solid var(--line-light);
-    background:rgba(255,255,255,0.04);
-    color:var(--paper);
+    border:1px solid var(--amber);
+    background:rgba(255,182,39,0.08);
+    color:var(--amber);
     font-family:'JetBrains Mono',monospace;
-    font-size:13px;
+    font-size:14px;
     font-weight:700;
-    letter-spacing:.06em;
+    letter-spacing:.08em;
     text-transform:uppercase;
     cursor:pointer;
     transition:all .15s ease;
   }
   .reset-filter-btn:active{
-    background:rgba(255,255,255,0.1);
+    background:rgba(255,182,39,0.22);
     transform:scale(0.99);
   }
   .bulk-del-btn{
@@ -693,7 +693,7 @@
         <select id="filterSizeRearDiam" class="size-seg" onchange="applyFilters()"></select>
       </div>
     </div>
-    <div class="field wide field-dark">
+    <div class="field wide">
       <label>メモ検索</label>
       <input type="text" id="filterNotes" oninput="applyFilters()" placeholder="キーワード">
     </div>
