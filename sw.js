@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tire-pressure-v26';
+const CACHE_NAME = 'tire-pressure-v28';
 const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', (event) => {
@@ -17,8 +17,6 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// ネットワーク優先: オンライン時は常に最新を取得し、取得できた分だけキャッシュを更新する。
-// オフライン時のみキャッシュから返す（オフライン対応のための保険）。
 self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request).then((response) => {
