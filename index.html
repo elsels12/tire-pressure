@@ -17,10 +17,10 @@
 <style>
   :root{
     --asphalt:#0c0e11;
-    --panel:#1c2027;
-    --panel-light:#262c36;
-    --line:#282e38;
-    --line-light:#384252;
+    --panel:#232933;
+    --panel-light:#2f3746;
+    --line:#363f4e;
+    --line-light:#465265;
     --paper:#e9e6df;
     --paper-dim:#b0b7c0;
     --cold:#3fa9f5;
@@ -145,7 +145,7 @@
   .corner{
     background:var(--panel-light);border:1px solid var(--line-light);border-radius:10px;
     padding:10px 4px;text-align:center;transition:border-color .2s ease;
-    min-width:0;
+    min-width:0;box-shadow:0 3px 10px rgba(0,0,0,0.35);
   }
   #corner-FL{grid-area:fl;}
   #corner-FR{grid-area:fr;}
@@ -1162,10 +1162,7 @@ function exportBackupJSON(){
     return;
   }
   const defaultName = currentCar || 'マイカー';
-  const inputName = prompt('バックアップの登録名を入力してください。\n\n・ご自身の引き継ぎ（機種変更）：\n　名称はそのままで問題ありません。\n\n・他者と共有する場合：\n　車名などの後に名前やニックネーム（例: ' + defaultName + '_佐藤）を入れると項目分けができて判別しやすくなります。', defaultName);
-  if(inputName === null) return;
-  const exportLabel = inputName.trim() || defaultName;
-  const safeLabel = exportLabel.replace(/[/\\?%*:|"<>]/g, '_');
+  const safeLabel = defaultName.replace(/[/\\?%*:|"<>]/g, '_');
 
   const json = JSON.stringify(entries, null, 2);
   const blob = new Blob([json], {type: 'application/json'});
@@ -1343,7 +1340,7 @@ function showImportConfirmModal(imported, importedCars, filename){
 
     <!-- 2. 変更せずそのまま取り込むボタン -->
     <div style="margin-bottom:18px;">
-      <button id="importOriginalBtn" style="width:100%;padding:13px 0;border-radius:8px;border:1px solid #384252;background:rgba(255,255,255,0.06);color:#ffffff;font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;letter-spacing:.03em;cursor:pointer;">
+      <button id="importOriginalBtn" style="width:100%;padding:13px 0;border-radius:8px;border:none;background:var(--amber);color:#1a1400;font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;letter-spacing:.04em;cursor:pointer;">
         変更せずそのまま取り込む
       </button>
     </div>
@@ -1364,7 +1361,7 @@ function showImportConfirmModal(imported, importedCars, filename){
 
     <!-- 5. 変更して取り込むボタン -->
     <div style="margin-bottom:14px;">
-      <button id="importWithRenameBtn" style="width:100%;padding:13px 0;border-radius:8px;border:none;background:var(--amber);color:#1a1400;font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;letter-spacing:.04em;cursor:pointer;">
+      <button id="importWithRenameBtn" style="width:100%;padding:13px 0;border-radius:8px;border:none;background:#ffd166;color:#1a1400;font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;letter-spacing:.04em;cursor:pointer;">
         変更して取り込む
       </button>
     </div>
