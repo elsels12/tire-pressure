@@ -1135,13 +1135,19 @@ function exportBackupJSON(){
     showToast('バックアップするデータがありません');
     return;
   }
+  const defaultName = currentCar || 'マイカー';
+  const inputName = prompt('バックアップファイルの登録名（共有相手が識別しやすい名前）', defaultName);
+  if(inputName === null) return;
+  const exportLabel = inputName.trim() || defaultName;
+  const safeLabel = exportLabel.replace(/[/\\?%*:|"<>]/g, '_');
+
   const json = JSON.stringify(entries, null, 2);
   const blob = new Blob([json], {type: 'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   const dateStr = new Date().toISOString().slice(0,10);
   a.href = url;
-  a.download = `tire_pressure_backup_${dateStr}.json`;
+  a.download = `tire_pressure_backup_${safeLabel}_${dateStr}.json`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -1154,23 +1160,10 @@ function importBackupFile(file){
   reader.onload = async ()=>{
     try{
       const imported = JSON.parse(reader.result);
-      if(!Array.isArray(imported)) throw new Error('invalid');
+      if(!Array.isArray(imported)) throw new Error('invalid format');
 
-      const existingIds = new Set(entries.map(e => e.id));
-      let addedCount = 0;
-      imported.forEach(e=>{
-        if(!existingIds.has(e.id)){
-          entries.push(e);
-          existingIds.add(e.id);
-          addedCount++;
-        }
-      });
-      entries.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-      await persistEntries();
-      updateTrackFilterOptions();
-      applyFilters();
-      showToast(`${addedCount}件のデータを復元しました`);
+      const importedCars = [...new Set(imported.map(e => e.car || 'マイカー'))];
+      showImportConfirmModal(imported, importedCars, file.name);
     }catch(e){
       showToast('ファイルの読み込みに失敗しました');
     }
@@ -1178,20 +1171,135 @@ function importBackupFile(file){
   reader.readAsText(file);
 }
 
+function showImportConfirmModal(imported, importedCars, filename){
+  const overlay = document.createElement('div');
+  overlay.id = 'importConfirmOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;';
+
+  const box = document.createElement('div');
+  box.style.cssText = 'background:#1c2027;border:1px solid #384252;border-radius:14px;padding:20px 16px;max-width:440px;width:100%;color:#e9e6df;box-shadow:0 8px 30px rgba(0,0,0,0.6);';
+
+  const defaultNewCarName = importedCars[0] === currentCar ? `${importedCars[0]}_共有` : (importedCars[0] || '他者データ');
+
+  box.innerHTML = `
+    <div style="font-family:'Oswald',sans-serif;font-size:18px;font-weight:700;color:var(--amber);margin-bottom:6px;">
+      📥 データの復元・取り込み
+    </div>
+    <div style="font-family:'Inter',sans-serif;font-size:13px;color:#cbd5e1;line-height:1.6;margin-bottom:12px;">
+      データが見つかりました（<strong>${imported.length}件</strong>）<br>
+      データ内の登録名: <span style="color:var(--amber);font-weight:700;">「${importedCars.join(', ')}」</span>
+    </div>
+    <div style="background:#14171b;border:1px solid #282e38;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:#94a3b8;line-height:1.5;">
+      他者から受け取ったデータの場合、新しい名前（例: 友達の名前や車種）をつけて登録すると、ご自身のデータと混ざらず別管理できます。
+    </div>
+
+    <div style="margin-bottom:14px;">
+      <label style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--amber);display:block;margin-bottom:4px;">
+        新しい登録名（他者データ用）
+      </label>
+      <input type="text" id="importNewCarName" value="${defaultNewCarName}" style="width:100%;background:#262c36;border:1px solid var(--amber);border-radius:6px;padding:9px 10px;color:#ffffff;font-size:14px;font-weight:700;box-sizing:border-box;outline:none;">
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button id="importWithRenameBtn" style="width:100%;padding:13px 0;border-radius:8px;border:none;background:var(--amber);color:#1a1400;font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;letter-spacing:.04em;cursor:pointer;">
+        登録名を変更して取り込む（推奨）
+      </button>
+      <button id="importOriginalBtn" style="width:100%;padding:11px 0;border-radius:8px;border:1px solid #384252;background:rgba(255,255,255,0.04);color:#e9e6df;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;">
+        変更せずそのまま取り込む
+      </button>
+      <button id="importCancelBtn" style="width:100%;padding:9px 0;border-radius:8px;border:none;background:transparent;color:#94a3b8;font-size:13px;cursor:pointer;">
+        キャンセル
+      </button>
+    </div>
+  `;
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
+  document.getElementById('importCancelBtn').onclick = () => {
+    document.body.removeChild(overlay);
+  };
+
+  document.getElementById('importOriginalBtn').onclick = async () => {
+    document.body.removeChild(overlay);
+    await executeImport(imported, null);
+  };
+
+  document.getElementById('importWithRenameBtn').onclick = async () => {
+    const newName = document.getElementById('importNewCarName').value.trim();
+    if(!newName){
+      showToast('登録名を入力してください');
+      return;
+    }
+    document.body.removeChild(overlay);
+    await executeImport(imported, newName);
+  };
+}
+
+async function executeImport(imported, newCarName){
+  const existingIds = new Set(entries.map(e => e.id));
+  let addedCount = 0;
+
+  imported.forEach((e, idx) => {
+    if(newCarName){
+      e.car = newCarName;
+    } else if(!e.car){
+      e.car = 'マイカー';
+    }
+
+    if(existingIds.has(e.id)){
+      e.id = Date.now() + idx;
+    }
+
+    entries.push(e);
+    existingIds.add(e.id);
+    addedCount++;
+  });
+
+  entries.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+  if(newCarName){
+    if(!carList.includes(newCarName)){
+      carList.push(newCarName);
+    }
+    currentCar = newCarName;
+  } else {
+    imported.forEach(e => {
+      if(e.car && !carList.includes(e.car)){
+        carList.push(e.car);
+      }
+    });
+  }
+
+  persistCars();
+  await persistEntries();
+  renderCarSelector();
+  updateTrackFilterOptions();
+  restoreLastSessionDefaults(true);
+  restorePressuresForMode(currentMode);
+  applyFilters();
+
+  if(newCarName){
+    showToast(`${addedCount}件を「${newCarName}」として登録しました`);
+  } else {
+    showToast(`${addedCount}件のデータを復元しました`);
+  }
+}
+
 function openMigration(){
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;';
 
   const box = document.createElement('div');
-  box.style.cssText = 'background:#1b1f24;border:1px solid #2b3038;border-radius:12px;padding:16px;max-width:480px;width:100%;';
+  box.style.cssText = 'background:#1c2027;border:1px solid #384252;border-radius:12px;padding:16px;max-width:480px;width:100%;';
 
   const label = document.createElement('div');
-  label.textContent = '機種変更などでデータを移したいときに使います。今の端末で「バックアップを保存」→そのファイルをAirDropやLINE等で新しい端末に送る→新しい端末でこの画面から「ファイルを選んで復元」してください。';
+  label.textContent = 'データのバックアップや、他者とのデータ共有に使用します。「バックアップを保存」でファイルを保存し、LINEやAirDrop等で共有できます。相手から受け取ったファイルは「ファイルを選んで復元」から取り込めます（他者データとして別名保存も可能）。';
   label.style.cssText = "color:#e9e6df;font-family:'Inter',sans-serif;font-size:13px;margin-bottom:14px;line-height:1.5;";
 
   const exportBtn = document.createElement('button');
   exportBtn.textContent = 'バックアップを保存';
-  exportBtn.style.cssText = 'width:100%;padding:12px 0;border-radius:8px;border:none;background:#ffb627;color:#1a1400;font-weight:600;';
+  exportBtn.style.cssText = 'width:100%;padding:12px 0;border-radius:8px;border:none;background:#ffb627;color:#1a1400;font-weight:600;cursor:pointer;';
   exportBtn.onclick = exportBackupJSON;
 
   const fileInput = document.createElement('input');
@@ -1206,13 +1314,13 @@ function openMigration(){
   };
 
   const importBtn = document.createElement('button');
-  importBtn.textContent = 'ファイルを選んで復元';
-  importBtn.style.cssText = 'width:100%;margin-top:10px;padding:12px 0;border-radius:8px;border:1px solid #ffb627;background:transparent;color:#ffb627;font-weight:600;';
+  importBtn.textContent = 'ファイルを選んで復元・取り込み';
+  importBtn.style.cssText = 'width:100%;margin-top:10px;padding:12px 0;border-radius:8px;border:1px solid #ffb627;background:transparent;color:#ffb627;font-weight:600;cursor:pointer;';
   importBtn.onclick = () => fileInput.click();
 
   const closeBtn = document.createElement('button');
   closeBtn.textContent = '閉じる';
-  closeBtn.style.cssText = 'width:100%;margin-top:8px;padding:10px 0;border-radius:8px;border:1px solid #2b3038;background:transparent;color:#9aa0a8;';
+  closeBtn.style.cssText = 'width:100%;margin-top:8px;padding:10px 0;border-radius:8px;border:1px solid #2b3038;background:transparent;color:#9aa0a8;cursor:pointer;';
   closeBtn.onclick = () => document.body.removeChild(overlay);
 
   box.appendChild(label);
@@ -1920,10 +2028,11 @@ function csvEscape(val){
   return str;
 }
 
-function buildCSVString(data){
-  const headers = ['日時','モード','場所','タイヤ_フロント','タイヤ_リア','サイズ_フロント','サイズ_リア','路面状況','気温','路面温度','ラップタイム','体感','FL','FR','RL','RR','メモ'];
+function buildCSVString(data, defaultName){
+  const headers = ['日時','登録名','モード','場所','タイヤ_フロント','タイヤ_リア','サイズ_フロント','サイズ_リア','路面状況','気温','路面温度','ラップタイム','体感','FL','FR','RL','RR','メモ'];
   const rows = data.map(e => [
     e.timestamp,
+    defaultName || e.car || '',
     e.mode === 'cold' ? '冷間' : '温間',
     e.track || '',
     e.tireBrandFront || '',
@@ -1931,8 +2040,8 @@ function buildCSVString(data){
     e.sizeFront || '',
     e.sizeRear || '',
     CONDITION_LABELS[e.condition] || e.condition || '',
-    e.ambientTemp ?? '',
-    e.trackTemp ?? '',
+    e.ambientTemp !== null && e.ambientTemp !== undefined ? e.ambientTemp : '',
+    e.trackTemp !== null && e.trackTemp !== undefined ? e.trackTemp : '',
     e.lapTime || '',
     e.feel || '',
     (e.pressures && e.pressures.FL !== undefined && e.pressures.FL !== null) ? e.pressures.FL : '',
@@ -1951,13 +2060,20 @@ function exportCSV(){
     showToast('エクスポートするデータがありません');
     return;
   }
-  const csv = buildCSVString(data);
+
+  const defaultName = currentCar || 'マイカー';
+  const inputName = prompt('CSVに含める登録名（ファイル名・データ列に記載する識別名）', defaultName);
+  if(inputName === null) return;
+  const exportLabel = inputName.trim() || defaultName;
+  const safeLabel = exportLabel.replace(/[/\\?%*:|"<>]/g, '_');
+
+  const csv = buildCSVString(data, exportLabel);
   const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   const dateStr = new Date().toISOString().slice(0,10);
   a.href = url;
-  a.download = `tire_pressure_${dateStr}.csv`;
+  a.download = `tire_pressure_${safeLabel}_${dateStr}.csv`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -2002,7 +2118,7 @@ function copyCSVToClipboard(){
     showToast('コピーするデータがありません');
     return;
   }
-  const csv = buildCSVString(data);
+  const csv = buildCSVString(data, currentCar);
 
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(csv).then(()=>{
