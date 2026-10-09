@@ -601,12 +601,18 @@
       <div class="autocomplete-list" id="track-suggest"></div>
     </div>
     <div class="field" style="position:relative;">
-      <label>フロント銘柄</label>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <label style="margin-bottom:0;">フロント銘柄</label>
+        <button type="button" class="temp-clear-btn" onclick="clearTireBrand()" title="クリア">クリア</button>
+      </div>
       <input type="text" id="tireBrandFront" placeholder="例: RE-71RS" autocomplete="off">
       <div class="autocomplete-list" id="tireBrandFront-suggest"></div>
     </div>
     <div class="field" style="position:relative;">
-      <label>リア銘柄</label>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <label style="margin-bottom:0;">リア銘柄</label>
+        <button type="button" class="temp-clear-btn" onclick="clearTireBrand()" title="クリア">クリア</button>
+      </div>
       <input type="text" id="tireBrandRear" placeholder="例: RE-71RS" autocomplete="off">
       <div class="autocomplete-list" id="tireBrandRear-suggest"></div>
     </div>
@@ -1001,7 +1007,7 @@ function setupQuickSelects(){
   checkBalance();
 
   const ambientSel = document.getElementById('ambientTemp-select');
-  buildRangeOptions(ambientSel, -10, 50, 1, '℃', '', '未設定（基準20℃）');
+  buildRangeOptions(ambientSel, -10, 50, 1, '℃', '', '選択');
   ambientSel.value = '';
   const ambientInput = document.getElementById('ambientTemp');
   ambientInput.value = '';
@@ -1012,7 +1018,7 @@ function setupQuickSelects(){
   });
 
   const trackSel = document.getElementById('trackTemp-select');
-  buildRangeOptions(trackSel, -10, 75, 1, '℃', '', '未設定（基準20℃）');
+  buildRangeOptions(trackSel, -10, 75, 1, '℃', '', '選択');
   trackSel.value = '';
   const trackInput = document.getElementById('trackTemp');
   trackInput.value = '';
@@ -1784,6 +1790,18 @@ function applySizePreset(prefix, val){
 }
 
 
+
+function clearTireBrand(){
+  const f = document.getElementById('tireBrandFront');
+  const r = document.getElementById('tireBrandRear');
+  if(f) f.value = '';
+  if(r) r.value = '';
+  tireLinkActive = true;
+  const fList = document.getElementById('tireBrandFront-suggest');
+  const rList = document.getElementById('tireBrandRear-suggest');
+  if(fList) fList.classList.remove('show');
+  if(rList) rList.classList.remove('show');
+}
 
 function clearTemp(idPrefix){
   const sel = document.getElementById(idPrefix + '-select');
