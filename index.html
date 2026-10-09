@@ -603,24 +603,20 @@
       <div class="autocomplete-list" id="track-suggest"></div>
     </div>
     <div class="field" style="position:relative;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;flex-wrap:wrap;gap:4px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
         <label style="margin-bottom:0;">フロント銘柄</label>
-        <div style="display:flex;align-items:center;gap:4px;">
-          <select id="presetTireBrandFront" class="size-preset-select" onchange="applyTireBrandPreset('Front', this.value); this.value='';" style="display:none;"></select>
-          <button type="button" class="temp-clear-btn" onclick="clearTireBrand()" title="クリア">クリア</button>
-        </div>
+        <button type="button" class="temp-clear-btn" onclick="clearTireBrand()" title="クリア">クリア</button>
       </div>
+      <select id="presetTireBrandFront" class="size-preset-select" onchange="applyTireBrandPreset('Front', this.value); this.value='';" style="display:none;width:100%;max-width:100%;margin-bottom:4px;"></select>
       <input type="text" id="tireBrandFront" placeholder="例: RE-71RS" autocomplete="off">
       <div class="autocomplete-list" id="tireBrandFront-suggest"></div>
     </div>
     <div class="field" style="position:relative;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;flex-wrap:wrap;gap:4px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
         <label style="margin-bottom:0;">リア銘柄</label>
-        <div style="display:flex;align-items:center;gap:4px;">
-          <select id="presetTireBrandRear" class="size-preset-select" onchange="applyTireBrandPreset('Rear', this.value); this.value='';" style="display:none;"></select>
-          <button type="button" class="temp-clear-btn" onclick="clearTireBrand()" title="クリア">クリア</button>
-        </div>
+        <button type="button" class="temp-clear-btn" onclick="clearTireBrand()" title="クリア">クリア</button>
       </div>
+      <select id="presetTireBrandRear" class="size-preset-select" onchange="applyTireBrandPreset('Rear', this.value); this.value='';" style="display:none;width:100%;max-width:100%;margin-bottom:4px;"></select>
       <input type="text" id="tireBrandRear" placeholder="例: RE-71RS" autocomplete="off">
       <div class="autocomplete-list" id="tireBrandRear-suggest"></div>
     </div>
@@ -1014,40 +1010,40 @@ function setupQuickSelects(){
   });
   checkBalance();
 
-  function buildTempRangeOptions(selectEl, min, max, unit, placeholder){
-    let html = `<option value="" selected>${placeholder}</option>`;
-    // Start options list from 20C upward to max, then from 19C down to min!
-    // Or from 20C to max, and then below 20C so that 20C is right at the top!
-    for(let v = 20; v <= max; v++){
+  function buildTempRangeOptions(selectEl, min, max, unit){
+    let html = '<option value="" selected>選択</option>';
+    for(let v = min; v <= max; v++){
       html += `<option value="${v}">${v}${unit}</option>`;
     }
-    for(let v = 19; v >= min; v--){
-      html += `<option value="${v}">${v}${unit}</option>`;
-    }
+    html += '<option value="">選択してください（未設定）</option>';
     selectEl.innerHTML = html;
   }
 
-  const ambientSel = document.getElementById('ambientTemp-select');
-  buildTempRangeOptions(ambientSel, -10, 50, '℃', '選択');
-  ambientSel.value = '';
-  const ambientInput = document.getElementById('ambientTemp');
-  ambientInput.value = '';
-  ambientSel.addEventListener('change', () => {
-    if(ambientSel.value !== ''){
-      ambientInput.value = '';
-    }
-  });
+  function setupTempPicker(selId, inputId, min, max){
+    const sel = document.getElementById(selId);
+    const input = document.getElementById(inputId);
+    buildTempRangeOptions(sel, min, max, '℃');
+    sel.value = '';
 
-  const trackSel = document.getElementById('trackTemp-select');
-  buildTempRangeOptions(trackSel, -10, 75, '℃', '選択');
-  trackSel.value = '';
-  const trackInput = document.getElementById('trackTemp');
-  trackInput.value = '';
-  trackSel.addEventListener('change', () => {
-    if(trackSel.value !== ''){
-      trackInput.value = '';
-    }
-  });
+    // When tapping while empty, pre-select 20C so the native picker/wheel opens centered on 20C!
+    const onTempTap = () => {
+      if(sel.value === ''){
+        sel.value = '20';
+      }
+    };
+    sel.addEventListener('pointerdown', onTempTap);
+    sel.addEventListener('touchstart', onTempTap, {passive: true});
+    sel.addEventListener('mousedown', onTempTap);
+
+    sel.addEventListener('change', () => {
+      if(sel.value !== ''){
+        input.value = '';
+      }
+    });
+  }
+
+  setupTempPicker('ambientTemp-select', 'ambientTemp', -10, 50);
+  setupTempPicker('trackTemp-select', 'trackTemp', -10, 75);
 }
 setupQuickSelects();
 
