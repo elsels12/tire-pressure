@@ -414,6 +414,65 @@
     background:rgba(255,122,48,0.15);color:#ff9d5c;border:1px solid rgba(255,122,48,0.4);
   }
 
+  
+  .session-save-mode{
+    background:#161a20;
+    border:1px solid #384252;
+    border-radius:10px;
+    padding:8px 10px;
+    margin-bottom:8px;
+    box-shadow:0 3px 12px rgba(0,0,0,0.5);
+  }
+  .session-save-mode-title{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    font-weight:800;
+    color:var(--amber);
+    margin-bottom:6px;
+    letter-spacing:.04em;
+    display:flex;align-items:center;gap:6px;
+  }
+  .session-save-mode-options{
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+  }
+  .session-save-opt{
+    display:flex;
+    align-items:flex-start;
+    gap:8px;
+    background:#1f252e;
+    border:1px solid #2d3542;
+    border-radius:6px;
+    padding:6px 8px;
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  .session-save-opt.active{
+    background:#2b3442;
+    border-color:var(--amber);
+  }
+  .session-save-opt input[type="radio"]{
+    margin-top:2px;
+    accent-color:var(--amber);
+    width:15px;
+    height:15px;
+    flex-shrink:0;
+    cursor:pointer;
+  }
+  .session-save-opt .opt-label{
+    font-size:12px;
+    font-weight:700;
+    color:#ffffff;
+    line-height:1.3;
+  }
+  .session-save-opt .opt-sub{
+    font-size:11px;
+    color:var(--paper-dim);
+    font-weight:normal;
+    margin-left:4px;
+  }
+
   .bundle-notice{
     background:#181d24;border:1px solid rgba(229,169,60,0.4);border-left:3px solid var(--amber);
     border-radius:6px;padding:8px 10px;margin-bottom:8px;
@@ -808,7 +867,7 @@
 
 <div class="save-btn-sticky">
   <div id="bundleNoticeContainer" style="display:none;"></div>
-  <button onclick="saveEntry()">記録する / LOG ENTRY</button>
+  <button onclick="saveEntry()" id="saveEntryBtn">記録する / LOG ENTRY</button>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -1277,11 +1336,13 @@ function restorePressuresForMode(mode){
 
 function updateSessionBundleNotice(){
   const container = document.getElementById('bundleNoticeContainer');
+  const btn = document.getElementById('saveEntryBtn');
   if(!container) return;
 
   if(currentMode !== 'hot'){
     container.innerHTML = '';
     container.style.display = 'none';
+    if(btn) btn.textContent = '記録する / LOG ENTRY (冷間)';
     return;
   }
 
@@ -1306,23 +1367,40 @@ function updateSessionBundleNotice(){
   if(!candidate){
     container.innerHTML = '';
     container.style.display = 'none';
+    if(btn) btn.textContent = '記録する / LOG ENTRY (温間)';
     return;
   }
 
   const date = new Date(candidate.timestamp);
   const timeStr = date.toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit'});
-  const trackStr = candidate.track ? ` (${candidate.track})` : '';
+  const trackStr = candidate.track ? ` ${candidate.track}` : '';
 
   container.style.display = 'block';
   container.innerHTML = `
-    <div class="bundle-notice">
-      <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:#ffda66;cursor:pointer;margin:0;width:100%;">
-        <input type="checkbox" id="bundleWithLastCold" checked style="accent-color:var(--amber);width:16px;height:16px;flex-shrink:0;">
-        <span>直近の冷間記録（${timeStr}${trackStr}）に温間データを結合して保管</span>
-      </label>
+    <div class="session-save-mode">
+      <div class="session-save-mode-title">⚡ 温間の保存方法を選択</div>
+      <div class="session-save-mode-options">
+        <label class="session-save-opt active" id="optBundle">
+          <input type="radio" name="saveSessionType" value="bundle" checked onchange="toggleSaveOptUI(this)">
+          <span class="opt-label">🔗 前回の冷間とまとめる<span class="opt-sub">（${timeStr}${trackStr}のカードに温間を追加）</span></span>
+        </label>
+        <label class="session-save-opt" id="optSeparate">
+          <input type="radio" name="saveSessionType" value="separate" onchange="toggleSaveOptUI(this)">
+          <span class="opt-label">➕ 新規セッションとして区切る<span class="opt-sub">（温間のみ別カードで新規作成）</span></span>
+        </label>
+      </div>
     </div>
   `;
+  if(btn) btn.textContent = '記録する / LOG ENTRY';
 }
+
+function toggleSaveOptUI(radio){
+  const optBundle = document.getElementById('optBundle');
+  const optSeparate = document.getElementById('optSeparate');
+  if(optBundle) optBundle.classList.toggle('active', radio.value === 'bundle');
+  if(optSeparate) optSeparate.classList.toggle('active', radio.value === 'separate');
+}
+
 
 function setMode(mode){
   currentMode = mode;
@@ -1546,7 +1624,86 @@ function parseLapTime(str){
   return min*60000 + sec*1000 + ms;
 }
 
+
+function toggleFilterPanel(){
+  const body = document.getElementById('filterPanelBody');
+  const icon = document.getElementById('filterToggleIcon');
+  if(!body) return;
+  const isHidden = body.style.display === 'none';
+  body.style.display = isHidden ? 'block' : 'none';
+  if(icon) icon.textContent = isHidden ? '▾' : '▸';
+}
+
+function resetFilters(){
+  const track = document.getElementById('filterTrack'); if(track) track.value = '';
+  const cond = document.getElementById('filterCondition'); if(cond) cond.value = '';
+  const brand = document.getElementById('filterTireBrand'); if(brand) brand.value = '';
+  const tmin = document.getElementById('filterTempMin'); if(tmin) tmin.value = '';
+  const tmins = document.getElementById('filterTempMin-select'); if(tmins) tmins.value = '0';
+  const tmax = document.getElementById('filterTempMax'); if(tmax) tmax.value = '';
+  const tmaxs = document.getElementById('filterTempMax-select'); if(tmaxs) tmaxs.value = '20';
+  const feel = document.getElementById('filterFeel'); if(feel) feel.value = '';
+  ['filterSizeFrontWidth','filterSizeFrontAspect','filterSizeFrontDiam','filterSizeRearWidth','filterSizeRearAspect','filterSizeRearDiam','filterLapMinMin','filterLapMinSec','filterLapMinHund','filterLapMaxMin','filterLapMaxSec','filterLapMaxHund'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.value = '';
+  });
+  const notes = document.getElementById('filterNotes'); if(notes) notes.value = '';
+  applyFilters();
+}
+
+function bulkDeleteFiltered(){
+  if(!currentFilteredEntries || currentFilteredEntries.length === 0){
+    showToast('削除対象がありません');
+    return;
+  }
+  const count = currentFilteredEntries.length;
+  if(!confirm(`現在絞り込まれている ${count} 件の記録をすべて削除しますか？\n（この操作は元に戻せません）`)){
+    return;
+  }
+  const deleteIds = new Set(currentFilteredEntries.map(e => e.id));
+  entries = entries.filter(e => !deleteIds.has(e.id));
+  persistEntries();
+  updateTrackFilterOptions();
+  applyFilters();
+  updateSessionBundleNotice();
+  showToast(`${count} 件の記録を削除しました`);
+}
+
+function splitSession(id){
+  const idx = entries.findIndex(e => e.id === id);
+  if(idx === -1) return;
+  const entry = entries[idx];
+  if(!entry.coldPressures || !entry.hotPressures){
+    showToast('分割できるデータ（冷間と温間の両方）がありません');
+    return;
+  }
+  if(!confirm('このセッションを「冷間のみ」と「温間のみ」の2つの別々カードに分割しますか？')){
+    return;
+  }
+
+  const hotEntry = {
+    ...JSON.parse(JSON.stringify(entry)),
+    id: Date.now(),
+    coldPressures: null,
+    notes: entry.notes ? (entry.notes + ' (温間)') : null
+  };
+
+  entry.hotPressures = null;
+  entry.lapTime = null;
+
+  entries.splice(idx, 0, hotEntry);
+  persistEntries();
+  updateTrackFilterOptions();
+  applyFilters();
+  updateSessionBundleNotice();
+
+  const overlay = document.getElementById('editModalOverlay');
+  if(overlay) document.body.removeChild(overlay);
+  showToast('冷間と温間を別々のセッションに分割しました');
+}
+
 function applyFilters(){
+
   const carEntries = getCarEntries();
   const track = document.getElementById('filterTrack').value;
   const condition = document.getElementById('filterCondition').value;
@@ -2314,10 +2471,17 @@ function saveEntry(){
     const THREE_HOURS_MS = 3 * 60 * 60 * 1000;
     let matchingSession = null;
 
-    const bundleCheckbox = document.getElementById('bundleWithLastCold');
-    const shouldBundle = bundleCheckbox ? bundleCheckbox.checked : true;
+    const saveTypeRadios = document.getElementsByName('saveSessionType');
+    let chosenType = 'separate';
+    if(saveTypeRadios.length > 0){
+      for(let r of saveTypeRadios){
+        if(r.checked){ chosenType = r.value; break; }
+      }
+    } else {
+      chosenType = 'bundle';
+    }
 
-    if(currentMode === 'hot' && shouldBundle){
+    if(currentMode === 'hot' && chosenType === 'bundle'){
       for(let i=0; i<carEntries.length; i++){
         const cand = carEntries[i];
         const diff = now.getTime() - new Date(cand.timestamp).getTime();
@@ -2332,35 +2496,14 @@ function saveEntry(){
           }
         }
       }
-    } else if(currentMode === 'cold'){
-      // Quick edit within 15 mins if cold-only
-      if(carEntries.length > 0){
-        const cand = carEntries[0];
-        const diff = now.getTime() - new Date(cand.timestamp).getTime();
-        if(diff >= 0 && diff < 15 * 60 * 1000){
-          const hasC = cand.coldPressures && Object.values(cand.coldPressures).some(v => v !== null && v !== undefined);
-          const hasH = cand.hotPressures && Object.values(cand.hotPressures).some(v => v !== null && v !== undefined);
-          if(hasC && !hasH){
-            if(!trackVal || !cand.track || trackVal === cand.track){
-              matchingSession = cand;
-            }
-          }
-        }
-      }
     }
 
     if(matchingSession){
-      if(currentMode === 'cold'){
-        matchingSession.coldPressures = cornerVals;
-        if(ambVal !== null) matchingSession.ambientTemp = ambVal;
-        if(trkTempVal !== null) matchingSession.trackTemp = trkTempVal;
-      } else {
-        matchingSession.hotPressures = cornerVals;
-        if(ambVal !== null) matchingSession.ambientTemp = ambVal;
-        if(trkTempVal !== null) matchingSession.trackTemp = trkTempVal;
-        if(lapVal) matchingSession.lapTime = lapVal;
-        if(feelVal) matchingSession.feel = feelVal;
-      }
+      matchingSession.hotPressures = cornerVals;
+      if(ambVal !== null) matchingSession.ambientTemp = ambVal;
+      if(trkTempVal !== null) matchingSession.trackTemp = trkTempVal;
+      if(lapVal) matchingSession.lapTime = lapVal;
+      if(feelVal) matchingSession.feel = feelVal;
       if(trackVal) matchingSession.track = trackVal;
       if(brandFVal) matchingSession.tireBrandFront = brandFVal;
       if(brandRVal) matchingSession.tireBrandRear = brandRVal;
@@ -2370,7 +2513,7 @@ function saveEntry(){
       if(notesVal){
         matchingSession.notes = matchingSession.notes ? (matchingSession.notes + ' / ' + notesVal) : notesVal;
       }
-      showToast(currentMode === 'cold' ? '冷間圧力を更新しました' : '直近の冷間記録とまとめて保管しました');
+      showToast('前回の冷間カードに温間を追加しました');
     } else {
       const newEntry = {
         id: Date.now(),
@@ -2391,7 +2534,7 @@ function saveEntry(){
         notes: notesVal
       };
       entries.unshift(newEntry);
-      showToast(currentMode === 'cold' ? '冷間圧力を記録しました' : '温間圧力を記録しました');
+      showToast(currentMode === 'cold' ? '冷間セッションを新規記録しました' : '温間セッションを新規記録しました');
     }
 
     persistEntries();
@@ -2962,7 +3105,7 @@ loadEntries();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js?v=28').catch(() => {});
+    navigator.serviceWorker.register('sw.js?v=29').catch(() => {});
   });
 }
 </script>
