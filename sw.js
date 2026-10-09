@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tire-pressure-v22';
+const CACHE_NAME = 'tire-pressure-v23';
 const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', (event) => {
