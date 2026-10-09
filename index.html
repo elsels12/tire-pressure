@@ -143,9 +143,14 @@
     align-items:center;gap:6px;position:relative;z-index:1;width:100%;
   }
   .corner{
-    background:var(--panel-light);border:1px solid var(--line-light);border-radius:10px;
-    padding:10px 4px;text-align:center;transition:border-color .2s ease;
-    min-width:0;box-shadow:0 3px 10px rgba(0,0,0,0.35);
+    background:var(--panel-light);
+    border:1px solid #4a5568;
+    border-radius:10px;
+    padding:10px 4px;
+    text-align:center;
+    transition:border-color .2s ease;
+    min-width:0;
+    box-shadow:0 3px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06);
   }
   #corner-FL{grid-area:fl;}
   #corner-FR{grid-area:fr;}
@@ -228,17 +233,19 @@
   /* Lighter boxes (気温, 路面温度, タイヤ銘柄, ラップタイム, 体感) */
   .field{
     background:var(--panel-light);
-    border:1px solid var(--line-light);
+    border:1px solid #4a5568;
     border-radius:10px;
     padding:12px 10px;
     min-width:0;
     overflow:hidden;
+    box-shadow:0 3px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06);
   }
 
   /* Darker boxes (路面状態, 場所, タイヤサイズ, メモ) -> 背景より薄く、気温・銘柄より濃い */
   .field.field-dark{
     background:var(--panel);
-    border:1px solid var(--line);
+    border:1px solid #374151;
+    box-shadow:0 3px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04);
   }
 
   .field label{
@@ -384,11 +391,21 @@
   .log-note{margin-top:8px;font-size:13px;color:var(--paper-dim);font-style:italic;}
   .log-actions{display:flex;justify-content:flex-end;margin-top:8px;}
   .edit-btn{
-    background:rgba(255,182,39,0.12);border:1px solid var(--amber);color:var(--amber);
-    font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;
-    letter-spacing:.05em;cursor:pointer;padding:4px 10px;border-radius:6px;
+    background:transparent !important;
+    border:1px solid var(--amber) !important;
+    color:var(--amber) !important;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:.05em;
+    cursor:pointer;
+    padding:4px 10px;
+    border-radius:6px;
+    transition:background .15s ease;
   }
-  .edit-btn:active{background:rgba(255,182,39,0.25);}
+  .edit-btn:active{
+    background:rgba(255,182,39,0.15) !important;
+  }
     .reset-filter-btn{
     margin-top:12px;
     width:100%;
@@ -1750,12 +1767,10 @@ function setupTrackAutocomplete(){
   }
 
   // Tapping clears the input and shows all past track candidates
-  const onFocusOrClick = () => {
+  input.addEventListener('focus', () => {
     input.value = '';
     render(true);
-  };
-  input.addEventListener('focus', onFocusOrClick);
-  input.addEventListener('click', onFocusOrClick);
+  });
   input.addEventListener('input', () => render(false));
 
   document.addEventListener('pointerdown', (e) => {
@@ -1778,6 +1793,8 @@ function setupTrackAutocomplete(){
   listEl.addEventListener('mousedown', selectItem);
 }
 
+let tireLinkActive = true;
+
 function setupTireBrandAutocomplete(){
   const frontInput = document.getElementById('tireBrandFront');
   const rearInput = document.getElementById('tireBrandRear');
@@ -1797,47 +1814,48 @@ function setupTireBrandAutocomplete(){
     listEl.classList.add('show');
   }
 
-  let isTireSplit = false;
-
-  // Tap Front: clear Front, show suggestions
-  const onFrontFocus = () => {
-    // If front and rear currently have different values, user is purposefully editing Front
-    if(frontInput.value !== rearInput.value){
-      isTireSplit = true;
-    } else {
-      isTireSplit = false;
+  // Tapping Front
+  const handleFrontTap = () => {
+    // If currently linked (both equal and non-empty), tapping Front means user wants to edit Front separately
+    if(tireLinkActive && frontInput.value !== '' && frontInput.value === rearInput.value){
+      tireLinkActive = false;
+      frontInput.value = '';
+    } else if(!tireLinkActive && frontInput.value !== ''){
+      frontInput.value = '';
     }
-    frontInput.value = '';
-    render(frontList, '', true);
+    render(frontList, frontInput.value, true);
   };
-  frontInput.addEventListener('focus', onFrontFocus);
-  frontInput.addEventListener('click', onFrontFocus);
+  frontInput.addEventListener('focus', handleFrontTap);
 
-  // Tap Rear: clear Rear, show suggestions
-  const onRearFocus = () => {
-    if(frontInput.value !== rearInput.value){
-      isTireSplit = true;
-    } else {
-      isTireSplit = false;
+  // Tapping Rear
+  const handleRearTap = () => {
+    // If currently linked (both equal and non-empty), tapping Rear means user wants to edit Rear separately
+    if(tireLinkActive && rearInput.value !== '' && frontInput.value === rearInput.value){
+      tireLinkActive = false;
+      rearInput.value = '';
+    } else if(!tireLinkActive && rearInput.value !== ''){
+      rearInput.value = '';
     }
-    rearInput.value = '';
-    render(rearList, '', true);
+    render(rearList, rearInput.value, true);
   };
-  rearInput.addEventListener('focus', onRearFocus);
-  rearInput.addEventListener('click', onRearFocus);
+  rearInput.addEventListener('focus', handleRearTap);
 
   // Typing in Front
   frontInput.addEventListener('input', () => {
-    if(!isTireSplit){
+    // If linked, or if rear is empty, or if user types matching value: sync to rear!
+    if(tireLinkActive || rearInput.value === '' || frontInput.value === rearInput.value){
       rearInput.value = frontInput.value;
+      tireLinkActive = true;
     }
     render(frontList, frontInput.value, false);
   });
 
   // Typing in Rear
   rearInput.addEventListener('input', () => {
-    if(!isTireSplit){
+    // If linked, or if front is empty, or if user types matching value: sync to front!
+    if(tireLinkActive || frontInput.value === '' || frontInput.value === rearInput.value){
       frontInput.value = rearInput.value;
+      tireLinkActive = true;
     }
     render(rearList, rearInput.value, false);
   });
@@ -1850,8 +1868,10 @@ function setupTireBrandAutocomplete(){
     e.stopPropagation();
     const val = item.textContent;
     frontInput.value = val;
-    if(!isTireSplit){
+    // If linked or rear is empty: sync to rear!
+    if(tireLinkActive || rearInput.value === ''){
       rearInput.value = val;
+      tireLinkActive = true;
     }
     frontList.classList.remove('show');
     frontInput.blur();
@@ -1867,8 +1887,10 @@ function setupTireBrandAutocomplete(){
     e.stopPropagation();
     const val = item.textContent;
     rearInput.value = val;
-    if(!isTireSplit){
+    // If linked or front is empty: sync to front!
+    if(tireLinkActive || frontInput.value === ''){
       frontInput.value = val;
+      tireLinkActive = true;
     }
     rearList.classList.remove('show');
     rearInput.blur();
@@ -2102,7 +2124,7 @@ function restoreLastSessionDefaults(force = false){
     }
   }
   tireSizeLinked = (latest.sizeFront === latest.sizeRear);
-  tireLinked = (latest.tireBrandFront === latest.tireBrandRear);
+  tireLinkActive = (latest.tireBrandFront === latest.tireBrandRear);
 }
 
 function toggleFilterPanel(){
@@ -2330,12 +2352,9 @@ function exportCSV(){
   }
 
   const defaultName = currentCar || 'マイカー';
-  const inputName = prompt('CSVの登録名を入力してください（ファイル名およびデータ列に記録されます）。\n\n・自分用の記録：そのままで問題ありません。\n・他者と共有する場合：名前やニックネーム（例: ' + defaultName + '_佐藤）を入れると判別しやすくなります。', defaultName);
-  if(inputName === null) return;
-  const exportLabel = inputName.trim() || defaultName;
-  const safeLabel = exportLabel.replace(/[/\\?%*:|"<>]/g, '_');
+  const safeLabel = defaultName.replace(/[/\\?%*:|"<>]/g, '_');
 
-  const csv = buildCSVString(data, exportLabel);
+  const csv = buildCSVString(data, defaultName);
   const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
