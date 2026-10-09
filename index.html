@@ -237,7 +237,6 @@
     border-radius:10px;
     padding:12px 10px;
     min-width:0;
-    overflow:hidden;
     box-shadow:0 3px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06);
   }
 
@@ -596,22 +595,31 @@
       </select>
     </div>
     <div class="field field-dark" style="position:relative;">
-      <label>場所</label>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <label style="margin-bottom:0;">場所</label>
+        <select id="presetTrack" class="size-preset-select" onchange="applyTrackPreset(this.value); this.value='';" style="display:none;"></select>
+      </div>
       <input type="text" id="track" placeholder="例: Autopolis" autocomplete="off">
       <div class="autocomplete-list" id="track-suggest"></div>
     </div>
     <div class="field" style="position:relative;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;flex-wrap:wrap;gap:4px;">
         <label style="margin-bottom:0;">フロント銘柄</label>
-        <button type="button" class="temp-clear-btn" onclick="clearTireBrand()" title="クリア">クリア</button>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <select id="presetTireBrandFront" class="size-preset-select" onchange="applyTireBrandPreset('Front', this.value); this.value='';" style="display:none;"></select>
+          <button type="button" class="temp-clear-btn" onclick="clearTireBrand()" title="クリア">クリア</button>
+        </div>
       </div>
       <input type="text" id="tireBrandFront" placeholder="例: RE-71RS" autocomplete="off">
       <div class="autocomplete-list" id="tireBrandFront-suggest"></div>
     </div>
     <div class="field" style="position:relative;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;flex-wrap:wrap;gap:4px;">
         <label style="margin-bottom:0;">リア銘柄</label>
-        <button type="button" class="temp-clear-btn" onclick="clearTireBrand()" title="クリア">クリア</button>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <select id="presetTireBrandRear" class="size-preset-select" onchange="applyTireBrandPreset('Rear', this.value); this.value='';" style="display:none;"></select>
+          <button type="button" class="temp-clear-btn" onclick="clearTireBrand()" title="クリア">クリア</button>
+        </div>
       </div>
       <input type="text" id="tireBrandRear" placeholder="例: RE-71RS" autocomplete="off">
       <div class="autocomplete-list" id="tireBrandRear-suggest"></div>
@@ -1006,8 +1014,21 @@ function setupQuickSelects(){
   });
   checkBalance();
 
+  function buildTempRangeOptions(selectEl, min, max, unit, placeholder){
+    let html = `<option value="" selected>${placeholder}</option>`;
+    // Start options list from 20C upward to max, then from 19C down to min!
+    // Or from 20C to max, and then below 20C so that 20C is right at the top!
+    for(let v = 20; v <= max; v++){
+      html += `<option value="${v}">${v}${unit}</option>`;
+    }
+    for(let v = 19; v >= min; v--){
+      html += `<option value="${v}">${v}${unit}</option>`;
+    }
+    selectEl.innerHTML = html;
+  }
+
   const ambientSel = document.getElementById('ambientTemp-select');
-  buildRangeOptions(ambientSel, -10, 50, 1, '℃', '', '選択');
+  buildTempRangeOptions(ambientSel, -10, 50, '℃', '選択');
   ambientSel.value = '';
   const ambientInput = document.getElementById('ambientTemp');
   ambientInput.value = '';
@@ -1018,7 +1039,7 @@ function setupQuickSelects(){
   });
 
   const trackSel = document.getElementById('trackTemp-select');
-  buildRangeOptions(trackSel, -10, 75, 1, '℃', '', '選択');
+  buildTempRangeOptions(trackSel, -10, 75, '℃', '選択');
   trackSel.value = '';
   const trackInput = document.getElementById('trackTemp');
   trackInput.value = '';
@@ -1759,7 +1780,59 @@ function renderSizePresets(){
           sizeHistory.map(s => `<option value="${s}">${s}</option>`).join('');
       }
     }
+
+    // Tire Brand Presets
+    const tbSel = document.getElementById(`presetTireBrand${prefix}`);
+    if(tbSel){
+      if(tireBrandHistory.length === 0){
+        tbSel.style.display = 'none';
+      } else {
+        tbSel.style.display = 'inline-block';
+        tbSel.innerHTML = '<option value="">履歴から選択</option>' + 
+          tireBrandHistory.map(b => `<option value="${b}">${b}</option>`).join('');
+      }
+    }
   });
+
+  // Track Presets
+  const trkSel = document.getElementById('presetTrack');
+  if(trkSel){
+    if(trackHistory.length === 0){
+      trkSel.style.display = 'none';
+    } else {
+      trkSel.style.display = 'inline-block';
+      trkSel.innerHTML = '<option value="">履歴から選択</option>' + 
+        trackHistory.map(t => `<option value="${t}">${t}</option>`).join('');
+    }
+  }
+}
+
+function applyTrackPreset(val){
+  if(!val) return;
+  const input = document.getElementById('track');
+  if(input){
+    input.value = val;
+    input.dispatchEvent(new Event('input'));
+  }
+}
+
+function applyTireBrandPreset(prefix, val){
+  if(!val) return;
+  const frontInput = document.getElementById('tireBrandFront');
+  const rearInput = document.getElementById('tireBrandRear');
+  if(prefix === 'Front'){
+    frontInput.value = val;
+    if(tireLinkActive || rearInput.value === '' || frontInput.value === rearInput.value){
+      rearInput.value = val;
+      tireLinkActive = true;
+    }
+  } else {
+    rearInput.value = val;
+    if(tireLinkActive || frontInput.value === '' || frontInput.value === rearInput.value){
+      frontInput.value = val;
+      tireLinkActive = true;
+    }
+  }
 }
 
 function applyFilterSizePreset(prefix, val){
