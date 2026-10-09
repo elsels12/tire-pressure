@@ -1434,15 +1434,6 @@ function updateSessionBundleNotice(){
   const btn = document.getElementById('saveEntryBtn');
   if(!container) return;
 
-  // 1. 冷間記録時はポップアップを一切出さない
-  if(currentMode !== 'hot'){
-    container.innerHTML = '';
-    container.style.display = 'none';
-    if(btn) btn.textContent = '記録する / LOG ENTRY (冷間)';
-    return;
-  }
-
-  // 2. 温間記録時：直近の記録状態を判定
   const carEntries = getCarEntries();
   const THREE_HOURS_MS = 3 * 60 * 60 * 1000;
   const now = Date.now();
@@ -1450,61 +1441,93 @@ function updateSessionBundleNotice(){
   if(carEntries.length === 0){
     container.innerHTML = '';
     container.style.display = 'none';
-    if(btn) btn.textContent = '記録する / LOG ENTRY (温間)';
+    if(btn) btn.textContent = currentMode === 'cold' ? '記録する / LOG ENTRY (冷間)' : '記録する / LOG ENTRY (温間)';
     return;
   }
 
   const latest = carEntries[0];
   const diff = now - new Date(latest.timestamp).getTime();
 
-  // 3時間を超えている場合は新規温間として扱う（ポップアップ非表示）
+  // 3時間を超えている場合は別セッション扱い（ポップアップ非表示）
   if(diff < 0 || diff >= THREE_HOURS_MS){
     container.innerHTML = '';
     container.style.display = 'none';
-    if(btn) btn.textContent = '記録する / LOG ENTRY (温間)';
+    if(btn) btn.textContent = currentMode === 'cold' ? '記録する / LOG ENTRY (冷間)' : '記録する / LOG ENTRY (温間)';
     return;
   }
 
   const hasCold = latest.coldPressures && Object.values(latest.coldPressures).some(v => v !== null && v !== undefined);
   const hasHot = latest.hotPressures && Object.values(latest.hotPressures).some(v => v !== null && v !== undefined);
 
-  // 直近が「両方ある場合」または「温間のみの場合」はポップアップを出さない
-  if((hasCold && hasHot) || (!hasCold && hasHot)){
-    container.innerHTML = '';
-    container.style.display = 'none';
-    if(btn) btn.textContent = '記録する / LOG ENTRY (温間)';
-    return;
+  const date = new Date(latest.timestamp);
+  const timeStr = date.toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit'});
+  const trackStr = latest.track ? ` ${latest.track}` : '';
+
+  // 1. 温間 HOT 記録時:
+  // - 直前が「冷間のみ（hasCold && !hasHot）」の場合のみポップアップを表示
+  // - 直前が「両方揃っている」または「温間のみ」の場合は非表示
+  if(currentMode === 'hot'){
+    if(hasCold && !hasHot){
+      container.style.display = 'block';
+      container.innerHTML = `
+        <div class="session-save-mode">
+          <div class="session-save-mode-title">⚡ 温間の保存方法を選択</div>
+          <div class="session-save-mode-options">
+            <label class="session-save-opt active" id="optBundle">
+              <input type="radio" name="saveSessionType" value="bundle" checked onchange="toggleSaveOptUI(this)">
+              <span class="opt-label">前回の冷間とまとめる<span class="opt-sub">（${timeStr}${trackStr}のカードに温間を追加）</span></span>
+            </label>
+            <label class="session-save-opt" id="optSeparate">
+              <input type="radio" name="saveSessionType" value="separate" onchange="toggleSaveOptUI(this)">
+              <span class="opt-label">新規セッションとして区切る<span class="opt-sub">（温間のみ別カードで新規作成）</span></span>
+            </label>
+          </div>
+        </div>
+      `;
+      if(btn) btn.textContent = '記録する / LOG ENTRY';
+      return;
+    } else {
+      container.innerHTML = '';
+      container.style.display = 'none';
+      if(btn) btn.textContent = '記録する / LOG ENTRY (温間)';
+      return;
+    }
   }
 
-  // 直近が「冷間のみ（温間がまだない）」の場合のみ、まとめるか区切るかの選択ポップアップを表示
-  if(hasCold && !hasHot){
-    const date = new Date(latest.timestamp);
-    const timeStr = date.toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit'});
-    const trackStr = latest.track ? ` ${latest.track}` : '';
-
-    container.style.display = 'block';
-    container.innerHTML = `
-      <div class="session-save-mode">
-        <div class="session-save-mode-title">⚡ 温間の保存方法を選択</div>
-        <div class="session-save-mode-options">
-          <label class="session-save-opt active" id="optBundle">
-            <input type="radio" name="saveSessionType" value="bundle" checked onchange="toggleSaveOptUI(this)">
-            <span class="opt-label">前回の冷間とまとめる<span class="opt-sub">（${timeStr}${trackStr}のカードに温間を追加）</span></span>
-          </label>
-          <label class="session-save-opt" id="optSeparate">
-            <input type="radio" name="saveSessionType" value="separate" onchange="toggleSaveOptUI(this)">
-            <span class="opt-label">新規セッションとして区切る<span class="opt-sub">（温間のみ別カードで新規作成）</span></span>
-          </label>
+  // 2. 冷間 COLD 記録時:
+  // - 直前が「温間のみ（!hasCold && hasHot）」の場合のみポップアップを表示
+  // - 直前が「冷間のみ」または「両方揃っている」場合は非表示
+  if(currentMode === 'cold'){
+    if(!hasCold && hasHot){
+      container.style.display = 'block';
+      container.innerHTML = `
+        <div class="session-save-mode">
+          <div class="session-save-mode-title">⚡ 冷間の保存方法を選択</div>
+          <div class="session-save-mode-options">
+            <label class="session-save-opt active" id="optBundle">
+              <input type="radio" name="saveSessionType" value="bundle" checked onchange="toggleSaveOptUI(this)">
+              <span class="opt-label">前回の温間とまとめる<span class="opt-sub">（${timeStr}${trackStr}のカードに冷間を追加）</span></span>
+            </label>
+            <label class="session-save-opt" id="optSeparate">
+              <input type="radio" name="saveSessionType" value="separate" onchange="toggleSaveOptUI(this)">
+              <span class="opt-label">新規セッションとして区切る<span class="opt-sub">（冷間のみ別カードで新規作成）</span></span>
+            </label>
+          </div>
         </div>
-      </div>
-    `;
-    if(btn) btn.textContent = '記録する / LOG ENTRY';
-    return;
+      `;
+      if(btn) btn.textContent = '記録する / LOG ENTRY';
+      return;
+    } else {
+      container.innerHTML = '';
+      container.style.display = 'none';
+      if(btn) btn.textContent = '記録する / LOG ENTRY (冷間)';
+      return;
+    }
   }
 
   container.innerHTML = '';
   container.style.display = 'none';
-  if(btn) btn.textContent = '記録する / LOG ENTRY (温間)';
+  if(btn) btn.textContent = '記録する / LOG ENTRY';
 }
 
 function toggleSaveOptUI(radio){
@@ -2584,49 +2607,67 @@ function saveEntry(){
     const THREE_HOURS_MS = 3 * 60 * 60 * 1000;
     let matchingSession = null;
 
-    const saveTypeRadios = document.getElementsByName('saveSessionType');
+    const container = document.getElementById('bundleNoticeContainer');
+    const isPopupVisible = container && container.style.display !== 'none';
+
     let chosenType = 'separate';
-    if(saveTypeRadios.length > 0){
+    if(isPopupVisible){
+      const saveTypeRadios = document.getElementsByName('saveSessionType');
       for(let r of saveTypeRadios){
         if(r.checked){ chosenType = r.value; break; }
       }
     } else {
-      chosenType = 'bundle';
+      chosenType = 'separate';
     }
 
-    if(currentMode === 'hot' && chosenType === 'bundle'){
-      for(let i=0; i<carEntries.length; i++){
-        const cand = carEntries[i];
-        const diff = now.getTime() - new Date(cand.timestamp).getTime();
-        if(diff >= 0 && diff < THREE_HOURS_MS){
-          if(!trackVal || !cand.track || trackVal === cand.track){
-            const hasC = cand.coldPressures && Object.values(cand.coldPressures).some(v => v !== null && v !== undefined);
-            const hasH = cand.hotPressures && Object.values(cand.hotPressures).some(v => v !== null && v !== undefined);
-            if(hasC && !hasH){
-              matchingSession = cand;
-              break;
-            }
-          }
+    // 結合判定：ポップアップが表示されていてユーザーが「まとめる (bundle)」を選んだ場合のみ直前セッションと統合
+    if(isPopupVisible && chosenType === 'bundle' && carEntries.length > 0){
+      const latest = carEntries[0];
+      const diff = now.getTime() - new Date(latest.timestamp).getTime();
+      if(diff >= 0 && diff < THREE_HOURS_MS){
+        const hasC = latest.coldPressures && Object.values(latest.coldPressures).some(v => v !== null && v !== undefined);
+        const hasH = latest.hotPressures && Object.values(latest.hotPressures).some(v => v !== null && v !== undefined);
+
+        if(currentMode === 'hot' && hasC && !hasH){
+          matchingSession = latest;
+        } else if(currentMode === 'cold' && !hasC && hasH){
+          matchingSession = latest;
         }
       }
     }
 
     if(matchingSession){
-      matchingSession.hotPressures = cornerVals;
-      if(ambVal !== null) matchingSession.ambientTemp = ambVal;
-      if(trkTempVal !== null) matchingSession.trackTemp = trkTempVal;
-      if(lapVal) matchingSession.lapTime = lapVal;
-      if(feelVal) matchingSession.feel = feelVal;
-      if(trackVal) matchingSession.track = trackVal;
-      if(brandFVal) matchingSession.tireBrandFront = brandFVal;
-      if(brandRVal) matchingSession.tireBrandRear = brandRVal;
-      if(sizeFVal) matchingSession.sizeFront = sizeFVal;
-      if(sizeRVal) matchingSession.sizeRear = sizeRVal;
-      if(condVal) matchingSession.condition = condVal;
-      if(notesVal){
-        matchingSession.notes = matchingSession.notes ? (matchingSession.notes + ' / ' + notesVal) : notesVal;
+      if(currentMode === 'hot'){
+        matchingSession.hotPressures = cornerVals;
+        if(ambVal !== null) matchingSession.ambientTemp = ambVal;
+        if(trkTempVal !== null) matchingSession.trackTemp = trkTempVal;
+        if(lapVal) matchingSession.lapTime = lapVal;
+        if(feelVal) matchingSession.feel = feelVal;
+        if(trackVal) matchingSession.track = trackVal;
+        if(brandFVal) matchingSession.tireBrandFront = brandFVal;
+        if(brandRVal) matchingSession.tireBrandRear = brandRVal;
+        if(sizeFVal) matchingSession.sizeFront = sizeFVal;
+        if(sizeRVal) matchingSession.sizeRear = sizeRVal;
+        if(condVal) matchingSession.condition = condVal;
+        if(notesVal){
+          matchingSession.notes = matchingSession.notes ? (matchingSession.notes + ' / ' + notesVal) : notesVal;
+        }
+        showToast('前回の冷間カードに温間を追加しました');
+      } else {
+        matchingSession.coldPressures = cornerVals;
+        if(ambVal !== null && matchingSession.ambientTemp === null) matchingSession.ambientTemp = ambVal;
+        if(trkTempVal !== null && matchingSession.trackTemp === null) matchingSession.trackTemp = trkTempVal;
+        if(trackVal && !matchingSession.track) matchingSession.track = trackVal;
+        if(brandFVal && !matchingSession.tireBrandFront) matchingSession.tireBrandFront = brandFVal;
+        if(brandRVal && !matchingSession.tireBrandRear) matchingSession.tireBrandRear = brandRVal;
+        if(sizeFVal && !matchingSession.sizeFront) matchingSession.sizeFront = sizeFVal;
+        if(sizeRVal && !matchingSession.sizeRear) matchingSession.sizeRear = sizeRVal;
+        if(condVal && !matchingSession.condition) matchingSession.condition = condVal;
+        if(notesVal){
+          matchingSession.notes = matchingSession.notes ? (matchingSession.notes + ' / ' + notesVal) : notesVal;
+        }
+        showToast('前回の温間カードに冷間を追加しました');
       }
-      showToast('前回の冷間カードに温間を追加しました');
     } else {
       const newEntry = {
         id: Date.now(),
@@ -2667,7 +2708,6 @@ function saveEntry(){
     showToast('記録エラー: ' + err.message);
   }
 }
-
 
 const CONDITION_LABELS = {
   Dry: 'ドライ',
@@ -3218,7 +3258,7 @@ loadEntries();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js?v=30').catch(() => {});
+    navigator.serviceWorker.register('sw.js?v=31').catch(() => {});
   });
 }
 </script>
