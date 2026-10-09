@@ -72,6 +72,29 @@
     padding:5px 10px;border-radius:20px;cursor:pointer;
   }
   .topbar-csv-btn:active{background:rgba(255,182,39,0.15);}
+    .data-guide-bar-btn{
+    width:100%;
+    margin-top:8px;
+    padding:8px 10px;
+    background:rgba(255,182,39,0.08);
+    border:1px dashed var(--amber);
+    border-radius:8px;
+    color:var(--amber);
+    font-family:'Inter',sans-serif;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.02em;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    box-sizing:border-box;
+    transition:background .15s ease;
+  }
+  .data-guide-bar-btn:active{
+    background:rgba(255,182,39,0.2);
+  }
   .car-selector-row{display:flex;gap:6px;margin-top:10px;}
   .car-selector{
     flex:1;background:var(--panel);border:1px solid var(--amber);border-radius:20px;
@@ -451,6 +474,9 @@
     </div>
   </div>
   <div class="sub">冷間・温間圧力 / 気温・路面温度トラッキング</div>
+  <button type="button" class="data-guide-bar-btn" onclick="openDataGuideModal()">
+    📖 機種変更・データ共有の詳しいやり方はこちら
+  </button>
   <div class="car-selector-row">
     <select id="carSelector" class="car-selector" onchange="handleCarSelectorChange()"></select>
     <button class="topbar-csv-btn" onclick="openCarManager()">車両管理</button>
@@ -1136,7 +1162,7 @@ function exportBackupJSON(){
     return;
   }
   const defaultName = currentCar || 'マイカー';
-  const inputName = prompt('バックアップファイルの登録名（共有相手が識別しやすい名前）', defaultName);
+  const inputName = prompt('バックアップの登録名を入力してください。\n\n・ご自身の引き継ぎ（機種変更）：\n　名称はそのままで問題ありません。\n\n・他者と共有する場合：\n　車名などの後に名前やニックネーム（例: ' + defaultName + '_佐藤）を入れると項目分けができて判別しやすくなります。', defaultName);
   if(inputName === null) return;
   const exportLabel = inputName.trim() || defaultName;
   const safeLabel = exportLabel.replace(/[/\\?%*:|"<>]/g, '_');
@@ -1155,20 +1181,139 @@ function exportBackupJSON(){
   showToast('バックアップを保存しました');
 }
 
+function parseCSVToEntries(text){
+  text = text.replace(/^\uFEFF/, '').trim();
+  const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
+  if(lines.length < 2) return null;
+
+  function parseRow(rowStr){
+    const row = [];
+    let insideQuote = false;
+    let entry = '';
+    for(let i=0; i<rowStr.length; i++){
+      const c = rowStr[i];
+      if(c === '"'){
+        if(insideQuote && rowStr[i+1] === '"'){
+          entry += '"';
+          i++;
+        } else {
+          insideQuote = !insideQuote;
+        }
+      } else if(c === ',' && !insideQuote){
+        row.push(entry.trim());
+        entry = '';
+      } else {
+        entry += c;
+      }
+    }
+    row.push(entry.trim());
+    return row;
+  }
+
+  const headers = parseRow(lines[0]);
+  const hasCarCol = headers.includes('登録名') || headers.includes('車両');
+
+  const entriesList = [];
+  for(let i=1; i<lines.length; i++){
+    const cols = parseRow(lines[i]);
+    if(cols.length < 4) continue;
+
+    let colIdx = 0;
+    const timestamp = cols[colIdx++] || new Date().toISOString();
+    let car = 'マイカー';
+    if(hasCarCol){
+      car = cols[colIdx++] || 'マイカー';
+    }
+    const modeRaw = cols[colIdx++] || '';
+    const mode = (modeRaw === '温間' || modeRaw.toLowerCase() === 'hot') ? 'hot' : 'cold';
+    const track = cols[colIdx++] || null;
+    const tireBrandFront = cols[colIdx++] || null;
+    const tireBrandRear = cols[colIdx++] || null;
+    const sizeFront = cols[colIdx++] || null;
+    const sizeRear = cols[colIdx++] || null;
+    const condition = cols[colIdx++] || 'Dry';
+    const ambientTemp = (colIdx < cols.length && cols[colIdx] !== '') ? parseFloat(cols[colIdx]) : null; colIdx++;
+    const trackTemp = (colIdx < cols.length && cols[colIdx] !== '') ? parseFloat(cols[colIdx]) : null; colIdx++;
+    const lapTime = cols[colIdx++] || null;
+    const feel = cols[colIdx++] || null;
+    const fl = (colIdx < cols.length && cols[colIdx] !== '') ? parseFloat(cols[colIdx]) : null; colIdx++;
+    const fr = (colIdx < cols.length && cols[colIdx] !== '') ? parseFloat(cols[colIdx]) : null; colIdx++;
+    const rl = (colIdx < cols.length && cols[colIdx] !== '') ? parseFloat(cols[colIdx]) : null; colIdx++;
+    const rr = (colIdx < cols.length && cols[colIdx] !== '') ? parseFloat(cols[colIdx]) : null; colIdx++;
+    const notes = cols[colIdx++] || null;
+
+    entriesList.push({
+      id: Date.now() + i,
+      timestamp: timestamp,
+      car: car,
+      mode: mode,
+      pressures: {
+        FL: isNaN(fl) ? null : fl,
+        FR: isNaN(fr) ? null : fr,
+        RL: isNaN(rl) ? null : rl,
+        RR: isNaN(rr) ? null : rr
+      },
+      ambientTemp: isNaN(ambientTemp) ? null : ambientTemp,
+      trackTemp: isNaN(trackTemp) ? null : trackTemp,
+      condition: condition,
+      track: track,
+      tireBrandFront: tireBrandFront,
+      tireBrandRear: tireBrandRear,
+      sizeFront: sizeFront,
+      sizeRear: sizeRear,
+      feel: feel,
+      lapTime: lapTime,
+      notes: notes
+    });
+  }
+
+  return entriesList.length > 0 ? entriesList : null;
+}
+
+function importBackupContent(rawText, sourceName){
+  try {
+    let cleaned = rawText.replace(/^\uFEFF/, '').trim();
+    let imported = null;
+
+    // 1. Try parsing as JSON (handles BOM, array, or object with entries)
+    if(cleaned.startsWith('[') || cleaned.startsWith('{')){
+      try {
+        const parsed = JSON.parse(cleaned);
+        if(Array.isArray(parsed)){
+          imported = parsed;
+        } else if(parsed && Array.isArray(parsed.entries)){
+          imported = parsed.entries;
+        }
+      } catch(jsonErr) {
+        // will fallback to CSV
+      }
+    }
+
+    // 2. Fallback to parsing as CSV
+    if(!imported){
+      imported = parseCSVToEntries(cleaned);
+    }
+
+    if(!imported || !Array.isArray(imported) || imported.length === 0){
+      throw new Error('有効なデータが見つかりませんでした。JSONまたはCSVファイルをお確かめください。');
+    }
+
+    const importedCars = [...new Set(imported.map(e => e.car || 'マイカー'))];
+    showImportConfirmModal(imported, importedCars, sourceName || 'データ');
+  } catch(err) {
+    alert('読み込みエラー: ' + (err.message || 'データ形式を確認してください'));
+  }
+}
+
 function importBackupFile(file){
   const reader = new FileReader();
   reader.onload = async ()=>{
-    try{
-      const imported = JSON.parse(reader.result);
-      if(!Array.isArray(imported)) throw new Error('invalid format');
-
-      const importedCars = [...new Set(imported.map(e => e.car || 'マイカー'))];
-      showImportConfirmModal(imported, importedCars, file.name);
-    }catch(e){
-      showToast('ファイルの読み込みに失敗しました');
-    }
+    importBackupContent(reader.result, file.name);
   };
-  reader.readAsText(file);
+  reader.onerror = ()=>{
+    alert('ファイルアクセスエラー: 端末内のファイルを開くことができませんでした');
+  };
+  reader.readAsText(file, 'utf-8');
 }
 
 function showImportConfirmModal(imported, importedCars, filename){
@@ -1189,8 +1334,12 @@ function showImportConfirmModal(imported, importedCars, filename){
       データが見つかりました（<strong>${imported.length}件</strong>）<br>
       データ内の登録名: <span style="color:var(--amber);font-weight:700;">「${importedCars.join(', ')}」</span>
     </div>
-    <div style="background:#14171b;border:1px solid #282e38;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:#94a3b8;line-height:1.5;">
-      他者から受け取ったデータの場合、新しい名前（例: 友達の名前や車種）をつけて登録すると、ご自身のデータと混ざらず別管理できます。
+    <div style="background:#14171b;border:1px solid #282e38;border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px;color:#cbd5e1;line-height:1.6;">
+      <div style="color:var(--amber);font-weight:700;margin-bottom:4px;">💡 取り込み時のポイント</div>
+      ・<strong>ご自身の引き継ぎ（機種変更）</strong>：<br>
+      　名称はそのままで問題ありません。<br>
+      ・<strong>他者とデータを共有する場合</strong>：<br>
+      　車名などの後に名前やニックネーム（例: ロードスター_佐藤）を入れると、項目分けができて判別しやすくなります。
     </div>
 
     <div style="margin-bottom:14px;">
@@ -1228,7 +1377,7 @@ function showImportConfirmModal(imported, importedCars, filename){
   document.getElementById('importWithRenameBtn').onclick = async () => {
     const newName = document.getElementById('importNewCarName').value.trim();
     if(!newName){
-      showToast('登録名を入力してください');
+      alert('登録名を入力してください');
       return;
     }
     document.body.removeChild(overlay);
@@ -1286,50 +1435,151 @@ async function executeImport(imported, newCarName){
   }
 }
 
-function openMigration(){
+function openDataGuideModal(){
   const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;';
+  overlay.id = 'dataGuideOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;';
 
   const box = document.createElement('div');
-  box.style.cssText = 'background:#1c2027;border:1px solid #384252;border-radius:12px;padding:16px;max-width:480px;width:100%;';
+  box.style.cssText = 'background:#1c2027;border:1px solid #384252;border-radius:14px;padding:20px 16px;max-width:480px;width:100%;max-height:88vh;overflow-y:auto;color:#e9e6df;box-shadow:0 8px 30px rgba(0,0,0,0.6);';
 
-  const label = document.createElement('div');
-  label.textContent = 'データのバックアップや、他者とのデータ共有に使用します。「バックアップを保存」でファイルを保存し、LINEやAirDrop等で共有できます。相手から受け取ったファイルは「ファイルを選んで復元」から取り込めます（他者データとして別名保存も可能）。';
-  label.style.cssText = "color:#e9e6df;font-family:'Inter',sans-serif;font-size:13px;margin-bottom:14px;line-height:1.5;";
+  box.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid #282e38;padding-bottom:10px;">
+      <div style="font-family:'Oswald',sans-serif;font-size:18px;font-weight:700;color:var(--amber);">
+        📖 機種変更・データ共有ガイド
+      </div>
+      <button id="closeGuideTopBtn" style="background:transparent;border:none;color:#94a3b8;font-size:18px;cursor:pointer;padding:4px 8px;">✕</button>
+    </div>
 
-  const exportBtn = document.createElement('button');
-  exportBtn.textContent = 'バックアップを保存';
-  exportBtn.style.cssText = 'width:100%;padding:12px 0;border-radius:8px;border:none;background:#ffb627;color:#1a1400;font-weight:600;cursor:pointer;';
-  exportBtn.onclick = exportBackupJSON;
+    <!-- 1. 機種変更 -->
+    <div style="background:#14171b;border:1px solid #282e38;border-radius:10px;padding:14px;margin-bottom:14px;">
+      <div style="font-size:14px;font-weight:700;color:var(--paper);margin-bottom:8px;">
+        📱 機種変更する場合（自分のデータを引き継ぐ）
+      </div>
+      <div style="font-size:12px;color:#94a3b8;line-height:1.7;">
+        <strong style="color:var(--amber);">1. 旧端末で保存：</strong><br>
+        画面右上の「<strong>⇄</strong>」ボタン →「<strong>バックアップを保存</strong>」を押します。<br>
+        ※引き継ぎの場合は<strong>名称はそのままで問題ありません</strong>。<br><br>
+        <strong style="color:var(--amber);">2. 新端末へ送る：</strong><br>
+        保存されたファイルを、AirDrop、LINE、メール等で新しいスマホに送ります。<br><br>
+        <strong style="color:var(--amber);">3. 新端末で復元：</strong><br>
+        新しいスマホでアプリを開き、「<strong>⇄</strong>」→「<strong>ファイルを選んで復元</strong>」から受け取ったファイルを選択します。<br>
+        確認画面で「<strong>変更せずそのまま取り込む</strong>」を押せば、全データがそのまま引き継がれます。
+      </div>
+    </div>
 
-  const fileInput = document.createElement('input');
-  fileInput.type = 'file';
-  fileInput.accept = 'application/json';
-  fileInput.style.display = 'none';
+    <!-- 2. データ共有 -->
+    <div style="background:#14171b;border:1px solid #282e38;border-radius:10px;padding:14px;margin-bottom:16px;">
+      <div style="font-size:14px;font-weight:700;color:var(--paper);margin-bottom:8px;">
+        👥 仲間・他者と共有する場合（データ交換）
+      </div>
+      <div style="font-size:12px;color:#94a3b8;line-height:1.7;">
+        データを共有する場合は、車名などの後に<strong>名前やニックネーム</strong>を入れると項目分けができて判別しやすくなります。<br><br>
+        <strong style="color:var(--amber);">【データを送る側】</strong><br>
+        「<strong>⇄</strong>」→「<strong>バックアップを保存</strong>」を押した際、登録名に「<strong>ロードスター_佐藤</strong>」のように名前をつけて保存し、相手に送ります。<br><br>
+        <strong style="color:var(--amber);">【データを受け取る側】</strong><br>
+        ファイルを選んで復元する際、確認画面で「<strong>登録名を変更して取り込む</strong>」を選びます。<br>
+        相手の名前（例:「佐藤さんのデータ」）を入力して取り込むと、自分の「マイカー」と混ざらず、<strong>上の車両選択メニューに新しい車として登録</strong>され、いつでもワンタップで切り替えて見比べることができます！
+      </div>
+    </div>
+
+    <button id="closeGuideBottomBtn" style="width:100%;padding:12px 0;border-radius:8px;border:none;background:var(--amber);color:#1a1400;font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">
+      閉じる
+    </button>
+  `;
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
+  document.getElementById('closeGuideTopBtn').onclick = () => {
+    document.body.removeChild(overlay);
+  };
+  document.getElementById('closeGuideBottomBtn').onclick = () => {
+    document.body.removeChild(overlay);
+  };
+}
+
+function openMigration(){
+
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px;';
+
+  const box = document.createElement('div');
+  box.style.cssText = 'background:#1c2027;border:1px solid #384252;border-radius:14px;padding:20px 16px;max-width:480px;width:100%;max-height:90vh;overflow-y:auto;color:#e9e6df;';
+
+  box.innerHTML = `
+    <div style="font-family:'Oswald',sans-serif;font-size:18px;font-weight:700;color:var(--amber);margin-bottom:6px;">
+      ⇄ データの共有・バックアップ
+    </div>
+    <div style="font-family:'Inter',sans-serif;font-size:13px;color:#cbd5e1;line-height:1.6;margin-bottom:16px;">
+      機種変更時の引き継ぎや、サーキット仲間とのデータ共有に使用します。<br>
+      ・<strong>ご自身の引き継ぎ</strong>：名称はそのままで問題ありません。<br>
+      ・<strong>他者と共有する場合</strong>：車名などの後に名前やニックネーム（例: ロードスター_佐藤）を入れると、項目分けができて判別しやすくなります。
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <button id="migExportJsonBtn" style="width:100%;padding:13px 0;border-radius:8px;border:none;background:var(--amber);color:#1a1400;font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;letter-spacing:.04em;cursor:pointer;">
+        バックアップを保存（ファイル書き出し）
+      </button>
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <input type="file" id="migFileInput" accept=".json,.csv,.txt,text/*,application/json,text/csv,text/plain,application/octet-stream" style="display:none;">
+      <button id="migImportFileBtn" style="width:100%;padding:13px 0;border-radius:8px;border:1px solid var(--amber);background:rgba(255,182,39,0.08);color:var(--amber);font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">
+        ファイルを選んで復元・取り込み
+      </button>
+    </div>
+
+    <div style="margin-bottom:16px;">
+      <button id="migPasteBtn" style="width:100%;padding:11px 0;border-radius:8px;border:1px solid #384252;background:rgba(255,255,255,0.04);color:#e9e6df;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;">
+        📋 テキスト（コピー内容）を貼り付けて復元
+      </button>
+    </div>
+
+    <div id="migPasteArea" style="display:none;margin-bottom:16px;">
+      <textarea id="migPasteText" placeholder="LINEやメールで共有されたJSONまたはCSVテキストをここに貼り付けてください" style="width:100%;height:100px;background:#262c36;border:1px solid #384252;border-radius:6px;padding:8px;color:#ffffff;font-family:'JetBrains Mono',monospace;font-size:12px;box-sizing:border-box;outline:none;resize:vertical;"></textarea>
+      <button id="migExecPasteBtn" style="width:100%;margin-top:8px;padding:10px 0;border-radius:6px;border:none;background:var(--amber);color:#1a1400;font-weight:700;cursor:pointer;">
+        このテキストから取り込む
+      </button>
+    </div>
+
+    <button id="migCloseBtn" style="width:100%;padding:10px 0;border-radius:8px;border:1px solid #282e38;background:transparent;color:#94a3b8;font-size:13px;cursor:pointer;">
+      閉じる
+    </button>
+  `;
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
+  document.getElementById('migExportJsonBtn').onclick = exportBackupJSON;
+
+  const fileInput = document.getElementById('migFileInput');
   fileInput.onchange = () => {
     if(fileInput.files && fileInput.files[0]){
       importBackupFile(fileInput.files[0]);
       document.body.removeChild(overlay);
     }
   };
+  document.getElementById('migImportFileBtn').onclick = () => fileInput.click();
 
-  const importBtn = document.createElement('button');
-  importBtn.textContent = 'ファイルを選んで復元・取り込み';
-  importBtn.style.cssText = 'width:100%;margin-top:10px;padding:12px 0;border-radius:8px;border:1px solid #ffb627;background:transparent;color:#ffb627;font-weight:600;cursor:pointer;';
-  importBtn.onclick = () => fileInput.click();
+  document.getElementById('migPasteBtn').onclick = () => {
+    const area = document.getElementById('migPasteArea');
+    area.style.display = area.style.display === 'none' ? 'block' : 'none';
+  };
 
-  const closeBtn = document.createElement('button');
-  closeBtn.textContent = '閉じる';
-  closeBtn.style.cssText = 'width:100%;margin-top:8px;padding:10px 0;border-radius:8px;border:1px solid #2b3038;background:transparent;color:#9aa0a8;cursor:pointer;';
-  closeBtn.onclick = () => document.body.removeChild(overlay);
+  document.getElementById('migExecPasteBtn').onclick = () => {
+    const val = document.getElementById('migPasteText').value.trim();
+    if(!val){
+      alert('貼り付け用テキストが入力されていません');
+      return;
+    }
+    document.body.removeChild(overlay);
+    importBackupContent(val, '貼り付けテキスト');
+  };
 
-  box.appendChild(label);
-  box.appendChild(exportBtn);
-  box.appendChild(importBtn);
-  box.appendChild(fileInput);
-  box.appendChild(closeBtn);
-  overlay.appendChild(box);
-  document.body.appendChild(overlay);
+  document.getElementById('migCloseBtn').onclick = () => {
+    document.body.removeChild(overlay);
+  };
 }
 
 function saveEntry(){
@@ -2062,7 +2312,7 @@ function exportCSV(){
   }
 
   const defaultName = currentCar || 'マイカー';
-  const inputName = prompt('CSVに含める登録名（ファイル名・データ列に記載する識別名）', defaultName);
+  const inputName = prompt('CSVの登録名を入力してください（ファイル名およびデータ列に記録されます）。\n\n・自分用の記録：そのままで問題ありません。\n・他者と共有する場合：名前やニックネーム（例: ' + defaultName + '_佐藤）を入れると判別しやすくなります。', defaultName);
   if(inputName === null) return;
   const exportLabel = inputName.trim() || defaultName;
   const safeLabel = exportLabel.replace(/[/\\?%*:|"<>]/g, '_');
