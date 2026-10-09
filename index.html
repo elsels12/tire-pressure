@@ -16,7 +16,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --asphalt:#14171b;
+    --asphalt:#0c0e11;
     --panel:#1c2027;
     --panel-light:#262c36;
     --line:#282e38;
@@ -1330,36 +1330,48 @@ function showImportConfirmModal(imported, importedCars, filename){
     <div style="font-family:'Oswald',sans-serif;font-size:18px;font-weight:700;color:var(--amber);margin-bottom:6px;">
       📥 データの復元・取り込み
     </div>
-    <div style="font-family:'Inter',sans-serif;font-size:13px;color:#cbd5e1;line-height:1.6;margin-bottom:12px;">
+    <div style="font-family:'Inter',sans-serif;font-size:13px;color:#cbd5e1;line-height:1.6;margin-bottom:14px;">
       データが見つかりました（<strong>${imported.length}件</strong>）<br>
       データ内の登録名: <span style="color:var(--amber);font-weight:700;">「${importedCars.join(', ')}」</span>
     </div>
-    <div style="background:#14171b;border:1px solid #282e38;border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px;color:#cbd5e1;line-height:1.6;">
-      <div style="color:var(--amber);font-weight:700;margin-bottom:4px;">💡 取り込み時のポイント</div>
-      ・<strong>ご自身の引き継ぎ（機種変更）</strong>：<br>
-      　名称はそのままで問題ありません。<br>
-      ・<strong>他者とデータを共有する場合</strong>：<br>
-      　車名などの後に名前やニックネーム（例: ロードスター_佐藤）を入れると、項目分けができて判別しやすくなります。
+
+    <!-- 1. 普通の引き継ぎの説明 -->
+    <div style="background:#14171b;border:1px solid #282e38;border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:12px;color:#cbd5e1;line-height:1.6;">
+      <strong style="color:var(--paper);font-size:13px;">📱 ご自身の引き継ぎ（機種変更）</strong><br>
+      名称はそのままで問題ありません。下のボタンを押すとそのまま復元されます。
     </div>
 
-    <div style="margin-bottom:14px;">
+    <!-- 2. 変更せずそのまま取り込むボタン -->
+    <div style="margin-bottom:18px;">
+      <button id="importOriginalBtn" style="width:100%;padding:13px 0;border-radius:8px;border:1px solid #384252;background:rgba(255,255,255,0.06);color:#ffffff;font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;letter-spacing:.03em;cursor:pointer;">
+        変更せずそのまま取り込む
+      </button>
+    </div>
+
+    <!-- 3. データ共有の説明 -->
+    <div style="background:#14171b;border:1px solid #282e38;border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:#cbd5e1;line-height:1.6;">
+      <strong style="color:var(--amber);font-size:13px;">👥 他者とのデータ共有</strong><br>
+      車名などの後に名前やニックネーム（例: ロードスター_佐藤）を入れると、ご自身のデータと混ざらず別車両として管理できます。
+    </div>
+
+    <!-- 4. 打ち替え用ボックス -->
+    <div style="margin-bottom:10px;">
       <label style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--amber);display:block;margin-bottom:4px;">
-        新しい登録名（他者データ用）
+        新しい登録名（打ち替え用）
       </label>
       <input type="text" id="importNewCarName" value="${defaultNewCarName}" style="width:100%;background:#262c36;border:1px solid var(--amber);border-radius:6px;padding:9px 10px;color:#ffffff;font-size:14px;font-weight:700;box-sizing:border-box;outline:none;">
     </div>
 
-    <div style="display:flex;flex-direction:column;gap:8px;">
+    <!-- 5. 変更して取り込むボタン -->
+    <div style="margin-bottom:14px;">
       <button id="importWithRenameBtn" style="width:100%;padding:13px 0;border-radius:8px;border:none;background:var(--amber);color:#1a1400;font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;letter-spacing:.04em;cursor:pointer;">
-        登録名を変更して取り込む（推奨）
-      </button>
-      <button id="importOriginalBtn" style="width:100%;padding:11px 0;border-radius:8px;border:1px solid #384252;background:rgba(255,255,255,0.04);color:#e9e6df;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;">
-        変更せずそのまま取り込む
-      </button>
-      <button id="importCancelBtn" style="width:100%;padding:9px 0;border-radius:8px;border:none;background:transparent;color:#94a3b8;font-size:13px;cursor:pointer;">
-        キャンセル
+        変更して取り込む
       </button>
     </div>
+
+    <button id="importCancelBtn" style="width:100%;padding:9px 0;border-radius:8px;border:none;background:transparent;color:#94a3b8;font-size:13px;cursor:pointer;">
+      キャンセル
+    </button>
   `;
 
   overlay.appendChild(box);
@@ -1788,16 +1800,29 @@ function setupTireBrandAutocomplete(){
     listEl.classList.add('show');
   }
 
-  // Tap Front: clear ONLY Front, show suggestions
+  let isTireSplit = false;
+
+  // Tap Front: clear Front, show suggestions
   const onFrontFocus = () => {
+    // If front and rear currently have different values, user is purposefully editing Front
+    if(frontInput.value !== rearInput.value){
+      isTireSplit = true;
+    } else {
+      isTireSplit = false;
+    }
     frontInput.value = '';
     render(frontList, '', true);
   };
   frontInput.addEventListener('focus', onFrontFocus);
   frontInput.addEventListener('click', onFrontFocus);
 
-  // Tap Rear: clear ONLY Rear, show suggestions
+  // Tap Rear: clear Rear, show suggestions
   const onRearFocus = () => {
+    if(frontInput.value !== rearInput.value){
+      isTireSplit = true;
+    } else {
+      isTireSplit = false;
+    }
     rearInput.value = '';
     render(rearList, '', true);
   };
@@ -1806,8 +1831,7 @@ function setupTireBrandAutocomplete(){
 
   // Typing in Front
   frontInput.addEventListener('input', () => {
-    // If rear is empty, mirror front (連動)
-    if(rearInput.value === '' || rearInput.value === frontInput.value){
+    if(!isTireSplit){
       rearInput.value = frontInput.value;
     }
     render(frontList, frontInput.value, false);
@@ -1815,8 +1839,7 @@ function setupTireBrandAutocomplete(){
 
   // Typing in Rear
   rearInput.addEventListener('input', () => {
-    // If front is empty, mirror rear (連動)
-    if(frontInput.value === '' || frontInput.value === rearInput.value){
+    if(!isTireSplit){
       frontInput.value = rearInput.value;
     }
     render(rearList, rearInput.value, false);
@@ -1830,8 +1853,7 @@ function setupTireBrandAutocomplete(){
     e.stopPropagation();
     const val = item.textContent;
     frontInput.value = val;
-    // If rear is empty, also set rear (連動)
-    if(rearInput.value === ''){
+    if(!isTireSplit){
       rearInput.value = val;
     }
     frontList.classList.remove('show');
@@ -1848,8 +1870,7 @@ function setupTireBrandAutocomplete(){
     e.stopPropagation();
     const val = item.textContent;
     rearInput.value = val;
-    // If front is empty, also set front (連動)
-    if(frontInput.value === ''){
+    if(!isTireSplit){
       frontInput.value = val;
     }
     rearList.classList.remove('show');
