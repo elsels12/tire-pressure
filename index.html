@@ -294,10 +294,10 @@
   }
 
     .temp-clear-btn{
-    background:rgba(255,82,82,0.08);
-    border:1px solid rgba(255,82,82,0.3);
+    background:rgba(63,169,245,0.12);
+    border:1px solid rgba(63,169,245,0.4);
     border-radius:4px;
-    color:#ff7875;
+    color:#70baff; /* 水色・青 */
     font-family:'JetBrains Mono',monospace;
     font-size:10px;
     font-weight:700;
@@ -307,8 +307,8 @@
     line-height:1.2;
   }
   .temp-clear-btn:hover, .temp-clear-btn:active{
-    background:rgba(255,82,82,0.25);
-    border-color:#ff4d4f;
+    background:rgba(63,169,245,0.28);
+    border-color:#3fa9f5;
     color:#ffffff;
   }
   .temp-select{
@@ -472,7 +472,7 @@
     border-radius:8px;
     border:1px solid #4a5a70;
     background:#222b38;
-    color:#ffffff;
+    color:var(--amber); /* ラベルと同じような黄色 */
     font-family:'Oswald',sans-serif;
     font-size:15px;
     font-weight:700;
@@ -989,7 +989,7 @@
       <input type="text" id="filterNotes" oninput="applyFilters()" placeholder="キーワード">
     </div>
   </div>
-  class="filter-actions-stack">
+  <div class="filter-actions-stack">
     <button type="button" class="reset-filter-btn" onclick="resetFilters()">絞り込みリセット / RESET</button>
     <button type="button" class="bulk-del-btn" onclick="bulkDeleteFiltered()">絞り込み結果を一括削除</button>
   </div>
@@ -3352,7 +3352,7 @@ loadEntries();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js?v=34').catch(() => {});
+    navigator.serviceWorker.register('sw.js?v=35').catch(() => {});
   });
 }
 </script>
