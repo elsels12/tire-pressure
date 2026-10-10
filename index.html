@@ -294,21 +294,22 @@
   }
 
     .temp-clear-btn{
-    background:rgba(255,255,255,0.06);
-    border:1px solid rgba(255,255,255,0.18);
+    background:rgba(255,82,82,0.08);
+    border:1px solid rgba(255,82,82,0.3);
     border-radius:4px;
-    color:var(--paper-dim);
+    color:#ff7875;
     font-family:'JetBrains Mono',monospace;
     font-size:10px;
     font-weight:700;
-    padding:2px 6px;
+    padding:2px 7px;
     cursor:pointer;
     transition:all .15s ease;
+    line-height:1.2;
   }
-  .temp-clear-btn:active{
-    background:rgba(255,90,46,0.25);
-    border-color:var(--danger);
-    color:var(--danger);
+  .temp-clear-btn:hover, .temp-clear-btn:active{
+    background:rgba(255,82,82,0.25);
+    border-color:#ff4d4f;
+    color:#ffffff;
   }
   .temp-select{
     width:100%;background:transparent !important;border:none !important;color:#ffffff !important;
@@ -852,13 +853,20 @@
   <div id="filterPanelBody" style="display:none;">
   <div class="grid2">
     <div class="field field-dark">
-      <label>場所</label>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <label style="margin-bottom:0;">場所</label>
+        <button type="button" class="temp-clear-btn" onclick="clearFilterField('track')" title="クリア">クリア</button>
+      </div>
       <select id="filterTrack" onchange="applyFilters()">
         <option value="">すべて</option>
       </select>
     </div>
+
     <div class="field field-dark">
-      <label>路面状態</label>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <label style="margin-bottom:0;">路面状態</label>
+        <button type="button" class="temp-clear-btn" onclick="clearFilterField('condition')" title="クリア">クリア</button>
+      </div>
       <select id="filterCondition" onchange="applyFilters()">
         <option value="">すべて</option>
         <option value="Dry">ドライ</option>
@@ -867,24 +875,40 @@
         <option value="BabyWet">ベビーウェット</option>
       </select>
     </div>
+
     <div class="field">
-      <label>気温 上限℃</label>
-      <select class="temp-select" id="filterTempMax-select" onchange="applyFilters()"></select>
-      <input type="number" step="0.5" class="temp-input" id="filterTempMax" oninput="applyFilters()" placeholder="手入力">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <label style="margin-bottom:0;">気温 上限</label>
+        <button type="button" class="temp-clear-btn" onclick="clearFilterField('tempMax')" title="クリア">クリア</button>
+      </div>
+      <select class="temp-select" id="filterTempMax-select"></select>
+      <input type="number" step="0.5" class="temp-input" id="filterTempMax" placeholder="手入力" oninput="onTempInput('filterTempMax'); applyFilters();">
     </div>
+
     <div class="field">
-      <label>気温 下限℃</label>
-      <select class="temp-select" id="filterTempMin-select" onchange="applyFilters()"></select>
-      <input type="number" step="0.5" class="temp-input" id="filterTempMin" oninput="applyFilters()" placeholder="手入力">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <label style="margin-bottom:0;">気温 下限</label>
+        <button type="button" class="temp-clear-btn" onclick="clearFilterField('tempMin')" title="クリア">クリア</button>
+      </div>
+      <select class="temp-select" id="filterTempMin-select"></select>
+      <input type="number" step="0.5" class="temp-input" id="filterTempMin" placeholder="手入力" oninput="onTempInput('filterTempMin'); applyFilters();">
     </div>
+
     <div class="field field-dark">
-      <label>タイヤ銘柄</label>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <label style="margin-bottom:0;">タイヤ銘柄</label>
+        <button type="button" class="temp-clear-btn" onclick="clearFilterField('tireBrand')" title="クリア">クリア</button>
+      </div>
       <select id="filterTireBrand" onchange="applyFilters()">
         <option value="">すべて</option>
       </select>
     </div>
+
     <div class="field field-dark">
-      <label>体感</label>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <label style="margin-bottom:0;">体感</label>
+        <button type="button" class="temp-clear-btn" onclick="clearFilterField('feel')" title="クリア">クリア</button>
+      </div>
       <select id="filterFeel" onchange="applyFilters()">
         <option value="">すべて</option>
         <option value="A">A</option>
@@ -894,30 +918,42 @@
         <option value="E">E</option>
       </select>
     </div>
+
     <div class="field">
-      <label>タイム 上限</label>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <label style="margin-bottom:0;">タイム 上限</label>
+        <button type="button" class="temp-clear-btn" onclick="clearFilterField('lapMax')" title="クリア">クリア</button>
+      </div>
       <div class="laptime-boxes">
-        <input type="text" id="filterLapMaxMin" class="lap-seg" maxlength="2" inputmode="numeric" pattern="[0-9]*" placeholder="00">
+        <input type="text" id="filterLapMaxMin" class="lap-seg" maxlength="2" inputmode="numeric" pattern="[0-9]*" placeholder="00" oninput="applyFilters()">
         <span class="lap-sep">:</span>
-        <input type="text" id="filterLapMaxSec" class="lap-seg" maxlength="2" inputmode="numeric" pattern="[0-9]*" placeholder="00">
+        <input type="text" id="filterLapMaxSec" class="lap-seg" maxlength="2" inputmode="numeric" pattern="[0-9]*" placeholder="00" oninput="applyFilters()">
         <span class="lap-sep">.</span>
-        <input type="text" id="filterLapMaxHund" class="lap-seg lap-seg-3" maxlength="3" inputmode="numeric" pattern="[0-9]*" placeholder="000">
+        <input type="text" id="filterLapMaxHund" class="lap-seg lap-seg-3" maxlength="3" inputmode="numeric" pattern="[0-9]*" placeholder="000" oninput="applyFilters()">
       </div>
     </div>
+
     <div class="field">
-      <label>タイム 下限</label>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <label style="margin-bottom:0;">タイム 下限</label>
+        <button type="button" class="temp-clear-btn" onclick="clearFilterField('lapMin')" title="クリア">クリア</button>
+      </div>
       <div class="laptime-boxes">
-        <input type="text" id="filterLapMinMin" class="lap-seg" maxlength="2" inputmode="numeric" pattern="[0-9]*" placeholder="00">
+        <input type="text" id="filterLapMinMin" class="lap-seg" maxlength="2" inputmode="numeric" pattern="[0-9]*" placeholder="00" oninput="applyFilters()">
         <span class="lap-sep">:</span>
-        <input type="text" id="filterLapMinSec" class="lap-seg" maxlength="2" inputmode="numeric" pattern="[0-9]*" placeholder="00">
+        <input type="text" id="filterLapMinSec" class="lap-seg" maxlength="2" inputmode="numeric" pattern="[0-9]*" placeholder="00" oninput="applyFilters()">
         <span class="lap-sep">.</span>
-        <input type="text" id="filterLapMinHund" class="lap-seg lap-seg-3" maxlength="3" inputmode="numeric" pattern="[0-9]*" placeholder="000">
+        <input type="text" id="filterLapMinHund" class="lap-seg lap-seg-3" maxlength="3" inputmode="numeric" pattern="[0-9]*" placeholder="000" oninput="applyFilters()">
       </div>
     </div>
+
     <div class="field wide field-dark">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:4px;">
         <label style="margin-bottom:0;">フロント タイヤサイズ</label>
-        <select id="filterPresetSizeFront" class="size-preset-select" onchange="applyFilterSizePreset('Front', this.value); this.value='';" style="display:none;"></select>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <select id="filterPresetSizeFront" class="size-preset-select" onchange="applyFilterSizePreset('Front', this.value); this.value='';" style="display:none;"></select>
+          <button type="button" class="temp-clear-btn" onclick="clearFilterField('sizeFront')" title="クリア">クリア</button>
+        </div>
       </div>
       <div class="laptime-boxes">
         <select id="filterSizeFrontWidth" class="size-seg" onchange="applyFilters()"></select>
@@ -927,10 +963,14 @@
         <select id="filterSizeFrontDiam" class="size-seg" onchange="applyFilters()"></select>
       </div>
     </div>
+
     <div class="field wide field-dark">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:4px;">
         <label style="margin-bottom:0;">リア タイヤサイズ</label>
-        <select id="filterPresetSizeRear" class="size-preset-select" onchange="applyFilterSizePreset('Rear', this.value); this.value='';" style="display:none;"></select>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <select id="filterPresetSizeRear" class="size-preset-select" onchange="applyFilterSizePreset('Rear', this.value); this.value='';" style="display:none;"></select>
+          <button type="button" class="temp-clear-btn" onclick="clearFilterField('sizeRear')" title="クリア">クリア</button>
+        </div>
       </div>
       <div class="laptime-boxes">
         <select id="filterSizeRearWidth" class="size-seg" onchange="applyFilters()"></select>
@@ -940,12 +980,16 @@
         <select id="filterSizeRearDiam" class="size-seg" onchange="applyFilters()"></select>
       </div>
     </div>
+
     <div class="field wide">
-      <label>メモ検索</label>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <label style="margin-bottom:0;">メモ検索</label>
+        <button type="button" class="temp-clear-btn" onclick="clearFilterField('notes')" title="クリア">クリア</button>
+      </div>
       <input type="text" id="filterNotes" oninput="applyFilters()" placeholder="キーワード">
     </div>
   </div>
-  <div class="filter-actions-stack">
+  class="filter-actions-stack">
     <button type="button" class="reset-filter-btn" onclick="resetFilters()">絞り込みリセット / RESET</button>
     <button type="button" class="bulk-del-btn" onclick="bulkDeleteFiltered()">絞り込み結果を一括削除</button>
   </div>
@@ -1173,6 +1217,40 @@ function buildRangeOptions(selectEl, min, max, step, unit, base, placeholder = '
   selectEl.innerHTML = html;
 }
 
+function buildTempRangeOptions(selectEl, min, max, unit){
+  let html = '<option value="" selected>選択</option>';
+  for(let v = min; v <= max; v++){
+    html += `<option value="${v}">${v}${unit}</option>`;
+  }
+  html += '<option value="">選択してください（未設定）</option>';
+  selectEl.innerHTML = html;
+}
+
+function setupTempPicker(selId, inputId, min, max, onChangeCallback){
+  const sel = document.getElementById(selId);
+  const input = document.getElementById(inputId);
+  if(!sel || !input) return;
+  buildTempRangeOptions(sel, min, max, '℃');
+  sel.value = '';
+
+  // When tapping while empty, pre-select 20C so the native picker/wheel opens centered on 20C!
+  const onTempTap = () => {
+    if(sel.value === ''){
+      sel.value = '20';
+    }
+  };
+  sel.addEventListener('pointerdown', onTempTap);
+  sel.addEventListener('touchstart', onTempTap, {passive: true});
+  sel.addEventListener('mousedown', onTempTap);
+
+  sel.addEventListener('change', () => {
+    if(sel.value !== ''){
+      input.value = '';
+    }
+    if(onChangeCallback) onChangeCallback();
+  });
+}
+
 function setupQuickSelects(){
   ['FL','FR','RL','RR'].forEach(c=>{
     const sel = document.getElementById(c+'-select');
@@ -1185,38 +1263,6 @@ function setupQuickSelects(){
     input.addEventListener('input', checkBalance);
   });
   checkBalance();
-
-  function buildTempRangeOptions(selectEl, min, max, unit){
-    let html = '<option value="" selected>選択</option>';
-    for(let v = min; v <= max; v++){
-      html += `<option value="${v}">${v}${unit}</option>`;
-    }
-    html += '<option value="">選択してください（未設定）</option>';
-    selectEl.innerHTML = html;
-  }
-
-  function setupTempPicker(selId, inputId, min, max){
-    const sel = document.getElementById(selId);
-    const input = document.getElementById(inputId);
-    buildTempRangeOptions(sel, min, max, '℃');
-    sel.value = '';
-
-    // When tapping while empty, pre-select 20C so the native picker/wheel opens centered on 20C!
-    const onTempTap = () => {
-      if(sel.value === ''){
-        sel.value = '20';
-      }
-    };
-    sel.addEventListener('pointerdown', onTempTap);
-    sel.addEventListener('touchstart', onTempTap, {passive: true});
-    sel.addEventListener('mousedown', onTempTap);
-
-    sel.addEventListener('change', () => {
-      if(sel.value !== ''){
-        input.value = '';
-      }
-    });
-  }
 
   setupTempPicker('ambientTemp-select', 'ambientTemp', -10, 50);
   setupTempPicker('trackTemp-select', 'trackTemp', -10, 75);
@@ -1271,39 +1317,8 @@ function buildFilterRangeOptions(selectEl, min, max, step, unit){
 }
 
 function setupFilterFields(){
-  function buildFilterTempOptions(sel, min, max, unit){
-    let html = '<option value="" selected>指定なし</option>';
-    for(let v = min; v <= max; v++){
-      html += `<option value="${v}">${v}${unit}</option>`;
-    }
-    sel.innerHTML = html;
-  }
-
-  const tempMinSel = document.getElementById('filterTempMin-select');
-  if(tempMinSel){
-    buildFilterTempOptions(tempMinSel, -10, 50, '℃');
-    tempMinSel.value = '';
-    tempMinSel.addEventListener('change', applyFilters);
-  }
-  const tempMinInput = document.getElementById('filterTempMin');
-  if(tempMinInput){
-    tempMinInput.value = '';
-    tempMinInput.addEventListener('focus', function(){ this.value = ''; });
-    tempMinInput.addEventListener('input', applyFilters);
-  }
-
-  const tempMaxSel = document.getElementById('filterTempMax-select');
-  if(tempMaxSel){
-    buildFilterTempOptions(tempMaxSel, -10, 50, '℃');
-    tempMaxSel.value = '';
-    tempMaxSel.addEventListener('change', applyFilters);
-  }
-  const tempMaxInput = document.getElementById('filterTempMax');
-  if(tempMaxInput){
-    tempMaxInput.value = '';
-    tempMaxInput.addEventListener('focus', function(){ this.value = ''; });
-    tempMaxInput.addEventListener('input', applyFilters);
-  }
+  setupTempPicker('filterTempMax-select', 'filterTempMax', -10, 50, applyFilters);
+  setupTempPicker('filterTempMin-select', 'filterTempMin', -10, 50, applyFilters);
 
   ['Front', 'Rear'].forEach(prefix => {
     buildFilterRangeOptions(document.getElementById(`filterSize${prefix}Width`), 125, 405, 10, '');
@@ -1791,7 +1806,64 @@ function toggleFilterPanel(){
   if(icon) icon.textContent = isHidden ? '▾' : '▸';
 }
 
+function clearFilterField(field){
+  switch(field){
+    case 'track':
+      const t = document.getElementById('filterTrack');
+      if(t) t.value = '';
+      break;
+    case 'condition':
+      const c = document.getElementById('filterCondition');
+      if(c) c.value = '';
+      break;
+    case 'tempMax':
+      clearTemp('filterTempMax');
+      return;
+    case 'tempMin':
+      clearTemp('filterTempMin');
+      return;
+    case 'tireBrand':
+      const b = document.getElementById('filterTireBrand');
+      if(b) b.value = '';
+      break;
+    case 'feel':
+      const f = document.getElementById('filterFeel');
+      if(f) f.value = '';
+      break;
+    case 'lapMax':
+      ['filterLapMaxMin','filterLapMaxSec','filterLapMaxHund'].forEach(id => {
+        const el = document.getElementById(id); if(el) el.value = '';
+      });
+      break;
+    case 'lapMin':
+      ['filterLapMinMin','filterLapMinSec','filterLapMinHund'].forEach(id => {
+        const el = document.getElementById(id); if(el) el.value = '';
+      });
+      break;
+    case 'sizeFront':
+      ['filterSizeFrontWidth','filterSizeFrontAspect','filterSizeFrontDiam'].forEach(id => {
+        const el = document.getElementById(id); if(el) el.value = '';
+      });
+      const psf = document.getElementById('filterPresetSizeFront');
+      if(psf) psf.value = '';
+      break;
+    case 'sizeRear':
+      ['filterSizeRearWidth','filterSizeRearAspect','filterSizeRearDiam'].forEach(id => {
+        const el = document.getElementById(id); if(el) el.value = '';
+      });
+      const psr = document.getElementById('filterPresetSizeRear');
+      if(psr) psr.value = '';
+      break;
+    case 'notes':
+      const n = document.getElementById('filterNotes');
+      if(n) n.value = '';
+      break;
+  }
+  applyFilters();
+}
+
 function resetFilters(){
+
   const track = document.getElementById('filterTrack'); if(track) track.value = '';
   const cond = document.getElementById('filterCondition'); if(cond) cond.value = '';
   const brand = document.getElementById('filterTireBrand'); if(brand) brand.value = '';
@@ -2894,6 +2966,7 @@ function clearTemp(idPrefix){
   const input = document.getElementById(idPrefix);
   if(sel) sel.value = '';
   if(input) input.value = '';
+  if(idPrefix.startsWith('filter')) applyFilters();
 }
 
 function onTempInput(idPrefix){
@@ -3279,7 +3352,7 @@ loadEntries();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js?v=32').catch(() => {});
+    navigator.serviceWorker.register('sw.js?v=34').catch(() => {});
   });
 }
 </script>
