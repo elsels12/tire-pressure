@@ -327,6 +327,44 @@
   .temp-input::placeholder{color:rgba(255,255,255,0.35);}
   .temp-input:focus{border-color:var(--amber) !important;}
 
+  
+  /* Tire size input boxes with comfortable spacing */
+  .tire-size-boxes{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    width:100%;
+    margin-top:4px;
+    box-sizing:border-box;
+  }
+  .tire-size-boxes .size-seg{
+    flex:1;
+    min-width:0;
+    padding:8px 4px;
+    font-size:14px;
+    font-weight:700;
+    border-radius:8px;
+    border:1px solid #3d4654 !important;
+    background:#161a20 !important;
+    color:#ffffff !important;
+    text-align:center;
+    box-shadow:inset 0 1px 3px rgba(0,0,0,0.4);
+    outline:none;
+    cursor:pointer;
+    transition:border-color .15s ease;
+  }
+  .tire-size-boxes .size-seg:focus, .tire-size-boxes .size-seg:active{
+    border-color:var(--amber) !important;
+  }
+  .tire-size-boxes .lap-sep{
+    font-size:15px;
+    font-weight:800;
+    color:var(--paper-dim);
+    flex-shrink:0;
+    padding:0 3px;
+  }
+
   .size-preset-select{
     background:rgba(255,182,39,0.1) !important;border:1px solid var(--amber) !important;border-radius:6px;
     color:var(--amber) !important;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;
@@ -797,7 +835,7 @@
         <label style="margin-bottom:0;">フロント サイズ</label>
         <select id="presetSizeFront" class="size-preset-select" onchange="applySizePreset('Front', this.value); this.value='';" style="display:none;"></select>
       </div>
-      <div class="laptime-boxes">
+      <div class="tire-size-boxes">
         <select id="sizeFrontWidth" class="size-seg"></select>
         <span class="lap-sep">/</span>
         <select id="sizeFrontAspect" class="size-seg"></select>
@@ -810,7 +848,7 @@
         <label style="margin-bottom:0;">リア サイズ</label>
         <select id="presetSizeRear" class="size-preset-select" onchange="applySizePreset('Rear', this.value); this.value='';" style="display:none;"></select>
       </div>
-      <div class="laptime-boxes">
+      <div class="tire-size-boxes">
         <select id="sizeRearWidth" class="size-seg"></select>
         <span class="lap-sep">/</span>
         <select id="sizeRearAspect" class="size-seg"></select>
@@ -948,14 +986,14 @@
     </div>
 
     <div class="field wide field-dark">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:4px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px;">
         <label style="margin-bottom:0;">フロント タイヤサイズ</label>
-        <div style="display:flex;align-items:center;gap:6px;">
-          <select id="filterPresetSizeFront" class="size-preset-select" onchange="applyFilterSizePreset('Front', this.value); this.value='';" style="display:none;"></select>
+        <div style="display:flex;align-items:center;gap:8px;">
           <button type="button" class="temp-clear-btn" onclick="clearFilterField('sizeFront')" title="クリア">クリア</button>
+          <select id="filterPresetSizeFront" class="size-preset-select" onchange="applyFilterSizePreset('Front', this.value); this.value='';"></select>
         </div>
       </div>
-      <div class="laptime-boxes">
+      <div class="tire-size-boxes">
         <select id="filterSizeFrontWidth" class="size-seg" onchange="applyFilters()"></select>
         <span class="lap-sep">/</span>
         <select id="filterSizeFrontAspect" class="size-seg" onchange="applyFilters()"></select>
@@ -965,14 +1003,14 @@
     </div>
 
     <div class="field wide field-dark">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:4px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px;">
         <label style="margin-bottom:0;">リア タイヤサイズ</label>
-        <div style="display:flex;align-items:center;gap:6px;">
-          <select id="filterPresetSizeRear" class="size-preset-select" onchange="applyFilterSizePreset('Rear', this.value); this.value='';" style="display:none;"></select>
+        <div style="display:flex;align-items:center;gap:8px;">
           <button type="button" class="temp-clear-btn" onclick="clearFilterField('sizeRear')" title="クリア">クリア</button>
+          <select id="filterPresetSizeRear" class="size-preset-select" onchange="applyFilterSizePreset('Rear', this.value); this.value='';"></select>
         </div>
       </div>
-      <div class="laptime-boxes">
+      <div class="tire-size-boxes">
         <select id="filterSizeRearWidth" class="size-seg" onchange="applyFilters()"></select>
         <span class="lap-sep">/</span>
         <select id="filterSizeRearAspect" class="size-seg" onchange="applyFilters()"></select>
@@ -2847,20 +2885,20 @@ function renderSizePresets(){
   ['Front', 'Rear'].forEach(prefix => {
     const sel = document.getElementById(`presetSize${prefix}`);
     if(sel){
+      sel.style.display = 'inline-block';
       if(sizeHistory.length === 0){
-        sel.style.display = 'none';
+        sel.innerHTML = '<option value="">履歴サイズ（なし）</option>';
       } else {
-        sel.style.display = 'inline-block';
         sel.innerHTML = '<option value="">履歴サイズ</option>' + 
           sizeHistory.map(s => `<option value="${s}">${s}</option>`).join('');
       }
     }
     const fSel = document.getElementById(`filterPresetSize${prefix}`);
     if(fSel){
+      fSel.style.display = 'inline-block';
       if(sizeHistory.length === 0){
-        fSel.style.display = 'none';
+        fSel.innerHTML = '<option value="">履歴サイズ（なし）</option>';
       } else {
-        fSel.style.display = 'inline-block';
         fSel.innerHTML = '<option value="">履歴サイズ</option>' + 
           sizeHistory.map(s => `<option value="${s}">${s}</option>`).join('');
       }
@@ -2869,10 +2907,10 @@ function renderSizePresets(){
     // Tire Brand Presets
     const tbSel = document.getElementById(`presetTireBrand${prefix}`);
     if(tbSel){
+      tbSel.style.display = 'inline-block';
       if(tireBrandHistory.length === 0){
-        tbSel.style.display = 'none';
+        tbSel.innerHTML = '<option value="">履歴から選択（なし）</option>';
       } else {
-        tbSel.style.display = 'inline-block';
         tbSel.innerHTML = '<option value="">履歴から選択</option>' + 
           tireBrandHistory.map(b => `<option value="${b}">${b}</option>`).join('');
       }
@@ -2882,10 +2920,10 @@ function renderSizePresets(){
   // Track Presets
   const trkSel = document.getElementById('presetTrack');
   if(trkSel){
+    trkSel.style.display = 'inline-block';
     if(trackHistory.length === 0){
-      trkSel.style.display = 'none';
+      trkSel.innerHTML = '<option value="">履歴から選択（なし）</option>';
     } else {
-      trkSel.style.display = 'inline-block';
       trkSel.innerHTML = '<option value="">履歴から選択</option>' + 
         trackHistory.map(t => `<option value="${t}">${t}</option>`).join('');
     }
@@ -3352,7 +3390,7 @@ loadEntries();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js?v=35').catch(() => {});
+    navigator.serviceWorker.register('sw.js?v=36').catch(() => {});
   });
 }
 </script>
