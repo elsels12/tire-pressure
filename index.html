@@ -299,12 +299,17 @@
     border-radius:4px;
     color:#70baff; /* 水色・青 */
     font-family:'JetBrains Mono',monospace;
-    font-size:10px;
+    font-size:11px;
     font-weight:700;
-    padding:2px 7px;
+    padding:3px 10px;
     cursor:pointer;
     transition:all .15s ease;
     line-height:1.2;
+    white-space:nowrap !important;
+    flex-shrink:0 !important;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
   }
   .temp-clear-btn:hover, .temp-clear-btn:active{
     background:rgba(63,169,245,0.28);
@@ -368,7 +373,8 @@
   .size-preset-select{
     background:rgba(255,182,39,0.1) !important;border:1px solid var(--amber) !important;border-radius:6px;
     color:var(--amber) !important;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;
-    padding:2px 6px;outline:none;cursor:pointer;max-width:125px;text-overflow:ellipsis;
+    padding:3px 8px;outline:none;cursor:pointer;white-space:nowrap !important;flex-shrink:0 !important;
+    max-width:130px;text-overflow:ellipsis;
   }
   .size-preset-select option{background:#20252b;color:#ffffff;}
 
@@ -805,10 +811,7 @@
       </select>
     </div>
     <div class="field field-dark" style="position:relative;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-        <label style="margin-bottom:0;">場所</label>
-        <select id="presetTrack" class="size-preset-select" onchange="applyTrackPreset(this.value); this.value='';" style="display:none;"></select>
-      </div>
+      <label>場所</label>
       <input type="text" id="track" placeholder="例: Autopolis" autocomplete="off">
       <div class="autocomplete-list" id="track-suggest"></div>
     </div>
@@ -817,7 +820,6 @@
         <label style="margin-bottom:0;">フロント銘柄</label>
         <button type="button" class="temp-clear-btn" onclick="clearTireBrand()" title="クリア">クリア</button>
       </div>
-      <select id="presetTireBrandFront" class="size-preset-select" onchange="applyTireBrandPreset('Front', this.value); this.value='';" style="display:none;width:100%;max-width:100%;margin-bottom:4px;"></select>
       <input type="text" id="tireBrandFront" placeholder="例: RE-71RS" autocomplete="off">
       <div class="autocomplete-list" id="tireBrandFront-suggest"></div>
     </div>
@@ -826,7 +828,6 @@
         <label style="margin-bottom:0;">リア銘柄</label>
         <button type="button" class="temp-clear-btn" onclick="clearTireBrand()" title="クリア">クリア</button>
       </div>
-      <select id="presetTireBrandRear" class="size-preset-select" onchange="applyTireBrandPreset('Rear', this.value); this.value='';" style="display:none;width:100%;max-width:100%;margin-bottom:4px;"></select>
       <input type="text" id="tireBrandRear" placeholder="例: RE-71RS" autocomplete="off">
       <div class="autocomplete-list" id="tireBrandRear-suggest"></div>
     </div>
@@ -986,9 +987,9 @@
     </div>
 
     <div class="field wide field-dark">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px;">
-        <label style="margin-bottom:0;">フロント タイヤサイズ</label>
-        <div style="display:flex;align-items:center;gap:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;">
+        <label style="margin-bottom:0;white-space:nowrap;flex-shrink:0;">フロント タイヤサイズ</label>
+        <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
           <button type="button" class="temp-clear-btn" onclick="clearFilterField('sizeFront')" title="クリア">クリア</button>
           <select id="filterPresetSizeFront" class="size-preset-select" onchange="applyFilterSizePreset('Front', this.value); this.value='';"></select>
         </div>
@@ -1003,9 +1004,9 @@
     </div>
 
     <div class="field wide field-dark">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px;">
-        <label style="margin-bottom:0;">リア タイヤサイズ</label>
-        <div style="display:flex;align-items:center;gap:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;">
+        <label style="margin-bottom:0;white-space:nowrap;flex-shrink:0;">リア タイヤサイズ</label>
+        <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
           <button type="button" class="temp-clear-btn" onclick="clearFilterField('sizeRear')" title="クリア">クリア</button>
           <select id="filterPresetSizeRear" class="size-preset-select" onchange="applyFilterSizePreset('Rear', this.value); this.value='';"></select>
         </div>
@@ -2903,31 +2904,7 @@ function renderSizePresets(){
           sizeHistory.map(s => `<option value="${s}">${s}</option>`).join('');
       }
     }
-
-    // Tire Brand Presets
-    const tbSel = document.getElementById(`presetTireBrand${prefix}`);
-    if(tbSel){
-      tbSel.style.display = 'inline-block';
-      if(tireBrandHistory.length === 0){
-        tbSel.innerHTML = '<option value="">履歴から選択（なし）</option>';
-      } else {
-        tbSel.innerHTML = '<option value="">履歴から選択</option>' + 
-          tireBrandHistory.map(b => `<option value="${b}">${b}</option>`).join('');
-      }
-    }
   });
-
-  // Track Presets
-  const trkSel = document.getElementById('presetTrack');
-  if(trkSel){
-    trkSel.style.display = 'inline-block';
-    if(trackHistory.length === 0){
-      trkSel.innerHTML = '<option value="">履歴から選択（なし）</option>';
-    } else {
-      trkSel.innerHTML = '<option value="">履歴から選択</option>' + 
-        trackHistory.map(t => `<option value="${t}">${t}</option>`).join('');
-    }
-  }
 }
 
 function applyTrackPreset(val){
@@ -3390,7 +3367,7 @@ loadEntries();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js?v=36').catch(() => {});
+    navigator.serviceWorker.register('sw.js?v=37').catch(() => {});
   });
 }
 </script>
