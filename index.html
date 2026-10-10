@@ -1015,7 +1015,8 @@ function initCars(){
 }
 
 function getCarEntries(){
-  return entries.filter(e => e.car === currentCar);
+  const targetCar = currentCar || 'マイカー';
+  return entries.filter(e => (e.car || 'マイカー') === targetCar);
 }
 
 function renderCarSelector(){
@@ -1270,19 +1271,39 @@ function buildFilterRangeOptions(selectEl, min, max, step, unit){
 }
 
 function setupFilterFields(){
+  function buildFilterTempOptions(sel, min, max, unit){
+    let html = '<option value="" selected>指定なし</option>';
+    for(let v = min; v <= max; v++){
+      html += `<option value="${v}">${v}${unit}</option>`;
+    }
+    sel.innerHTML = html;
+  }
+
   const tempMinSel = document.getElementById('filterTempMin-select');
-  buildRangeOptions(tempMinSel, -10, 50, 1, '℃', 0);
-  tempMinSel.value = '0';
-  document.getElementById('filterTempMin').value = '';
-  tempMinSel.addEventListener('change', applyFilters);
-  document.getElementById('filterTempMin').addEventListener('focus', function(){ this.value = ''; });
+  if(tempMinSel){
+    buildFilterTempOptions(tempMinSel, -10, 50, '℃');
+    tempMinSel.value = '';
+    tempMinSel.addEventListener('change', applyFilters);
+  }
+  const tempMinInput = document.getElementById('filterTempMin');
+  if(tempMinInput){
+    tempMinInput.value = '';
+    tempMinInput.addEventListener('focus', function(){ this.value = ''; });
+    tempMinInput.addEventListener('input', applyFilters);
+  }
 
   const tempMaxSel = document.getElementById('filterTempMax-select');
-  buildRangeOptions(tempMaxSel, -10, 50, 1, '℃', 20);
-  tempMaxSel.value = '20';
-  document.getElementById('filterTempMax').value = '';
-  tempMaxSel.addEventListener('change', applyFilters);
-  document.getElementById('filterTempMax').addEventListener('focus', function(){ this.value = ''; });
+  if(tempMaxSel){
+    buildFilterTempOptions(tempMaxSel, -10, 50, '℃');
+    tempMaxSel.value = '';
+    tempMaxSel.addEventListener('change', applyFilters);
+  }
+  const tempMaxInput = document.getElementById('filterTempMax');
+  if(tempMaxInput){
+    tempMaxInput.value = '';
+    tempMaxInput.addEventListener('focus', function(){ this.value = ''; });
+    tempMaxInput.addEventListener('input', applyFilters);
+  }
 
   ['Front', 'Rear'].forEach(prefix => {
     buildFilterRangeOptions(document.getElementById(`filterSize${prefix}Width`), 125, 405, 10, '');
@@ -1775,9 +1796,9 @@ function resetFilters(){
   const cond = document.getElementById('filterCondition'); if(cond) cond.value = '';
   const brand = document.getElementById('filterTireBrand'); if(brand) brand.value = '';
   const tmin = document.getElementById('filterTempMin'); if(tmin) tmin.value = '';
-  const tmins = document.getElementById('filterTempMin-select'); if(tmins) tmins.value = '0';
+  const tmins = document.getElementById('filterTempMin-select'); if(tmins) tmins.value = '';
   const tmax = document.getElementById('filterTempMax'); if(tmax) tmax.value = '';
-  const tmaxs = document.getElementById('filterTempMax-select'); if(tmaxs) tmaxs.value = '20';
+  const tmaxs = document.getElementById('filterTempMax-select'); if(tmaxs) tmaxs.value = '';
   const feel = document.getElementById('filterFeel'); if(feel) feel.value = '';
   ['filterSizeFrontWidth','filterSizeFrontAspect','filterSizeFrontDiam','filterSizeRearWidth','filterSizeRearAspect','filterSizeRearDiam','filterLapMinMin','filterLapMinSec','filterLapMinHund','filterLapMaxMin','filterLapMaxSec','filterLapMaxHund'].forEach(id => {
     const el = document.getElementById(id);
@@ -3258,7 +3279,7 @@ loadEntries();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js?v=31').catch(() => {});
+    navigator.serviceWorker.register('sw.js?v=32').catch(() => {});
   });
 }
 </script>
